@@ -309,6 +309,12 @@
             <input type="text" id="exam-notes" placeholder="Any notes for this exam">
           </div>
 
+          <div class="form-group" style="max-width:260px;">
+            <label class="form-label" for="exam-weight">Exam Weight % (optional)</label>
+            <input type="number" id="exam-weight" min="0" max="100" value="0" style="max-width:100px;">
+            <p class="hint">Used to calculate weighted final grade in the gradebook. E.g. 30 = this exam counts 30% of the final grade.</p>
+          </div>
+
         </div>
 
         <!-- STEP 6: QUESTION PREVIEW -->
@@ -363,8 +369,13 @@
         <div class="card" style="margin-bottom:1rem;">
           <label class="form-label" for="gradebook-subject-select">Select Subject</label>
           <select id="gradebook-subject-select" style="max-width:360px;"></select>
+          <div id="gradebook-view-toggle" style="display:none;margin-top:0.75rem;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-primary" id="gb-by-exam-btn">📋 By Exam</button>
+            <button class="btn btn-sm btn-outline" id="gb-by-student-btn">👤 By Student</button>
+          </div>
         </div>
         <div id="gradebook-content"></div>
+        <div id="student-summary-content" class="hidden"></div>
       </div>
 
       <!-- ── TAB 4: SETTINGS ────────────────────────────────────── -->
@@ -387,6 +398,18 @@
           <div class="settings-group">
             <h3>📖 Setup Guide</h3>
             <p><a href="docs/SETUP.md" target="_blank">View SETUP.md</a> for full deployment instructions.</p>
+          </div>
+
+          <div class="settings-group">
+            <h3>🌐 Custom Domain (Security)</h3>
+            <p>By default, the exam link exposes your GitHub repository name (e.g. <code>username.github.io/repo-name/exam.html</code>). To hide this:</p>
+            <ol style="margin:0.5rem 0 0.5rem 1.25rem;line-height:1.8;">
+              <li>Buy or use a free domain (e.g. via <a href="https://pages.github.com/" target="_blank">GitHub Pages custom domain</a>).</li>
+              <li>In your GitHub repo, go to <strong>Settings → Pages → Custom domain</strong> and enter your domain.</li>
+              <li>Add a <code>CNAME</code> file to your repo root containing just your domain name.</li>
+              <li>Update <code>GITHUB_PAGES_URL</code> in your Apps Script Script Properties to your new domain.</li>
+            </ol>
+            <p class="hint">Exam and score pages already include <code>noindex</code> tags to prevent search engines from indexing them.</p>
           </div>
 
           <div class="settings-group">
