@@ -202,7 +202,7 @@ function readFileAsBase64(file, callback) {
 
 function doParseFile(params) {
   setButtonLoading('parse-file-btn', true);
-  showStep3Status('Parsing file with Claude AI…');
+  showStep3Status('Parsing file with Gemini AI…');
 
   api(Object.assign({ action: 'uploadAndParseFile', password: App.password }, params))
     .then(function (data) {
@@ -211,13 +211,18 @@ function doParseFile(params) {
       if (data.mode === 'questionnaire') {
         App.parsedQuestions = normalizeQuestions(data.questions);
         App.referenceText   = '';
-        showStep3Status('Found ' + App.parsedQuestions.length + ' questions. Scroll down to preview.');
+        showStep3Status('Found ' + App.parsedQuestions.length + ' questions. Scroll down to configure and save.');
+        document.getElementById('step5-section').style.display = '';
+        document.getElementById('reference-only-settings').style.display = 'none';
+        showQuestionnaireDecision(App.parsedQuestions);
         renderQuestionPreview(App.parsedQuestions);
       } else {
         App.referenceText   = data.text || '';
         App.parsedQuestions = [];
         showStep3Status('Reference material loaded (' + App.referenceText.length + ' characters). Configure settings and click Generate.');
-        document.getElementById('step5-section').classList.remove('hidden');
+        document.getElementById('step5-section').style.display = '';
+        document.getElementById('questionnaire-decision').style.display = 'none';
+        document.getElementById('reference-only-settings').style.display = '';
       }
     })
     .catch(function () { showStep3Status('Connection error. Please try again.'); })
@@ -249,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (subj) subjectName = subj['Subject Name'];
 
     setButtonLoading('generate-exam-btn', true);
-    showStep3Status('Generating ' + qCount + ' questions with Claude AI… This may take 30–60 seconds.');
+    showStep3Status('Generating ' + qCount + ' questions with Gemini AI… This may take 30–60 seconds.');
 
     api({
       action: 'generateExam', password: App.password,
@@ -271,6 +276,139 @@ document.addEventListener('DOMContentLoaded', function () {
       .finally(function () { setButtonLoading('generate-exam-btn', false); });
   });
 });
+
+// ─────────────────────────────────────────────────────────────
+// TAB 1: QUESTIONNAIRE DECISION (Keep As-Is / Remodel)
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  var keepBtn   = document.getElementById('keep-as-is-btn');
+  var remodelBtn = document.getElementById('remodel-types-btn');
+  var applyBtn  = document.getElementById('apply-remodel-btn');
+  if (keepBtn)    keepBtn.addEventListener('click',   keepAsIs);
+  if (remodelBtn) remodelBtn.addEventListener('click', showRemodelFormUI);
+  if (applyBtn)   applyBtn.addEventListener('click',  applyRemodel);
+});
+
+function showQuestionnaireDecision(questions) {
+  var typeCounts = {};
+  questions.forEach(function (q) {
+    var t = q.type || 'unknown';
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  });
+
+  var typeLabel = {
+    multiple_choice:   'Multiple Choice',
+    true_false:        'True / False',
+    identification:    'Identification',
+    multiple_response: 'Multiple Response',
+    short_answer:      'Short Answer',
+    essay:             'Essay',
+    enumeration:       'Enumeration',
+    matching_type:     'Matching Type'
+  };
+
+  var parts = Object.keys(typeCounts).map(function (t) {
+    return '<strong>' + typeCounts[t] + '</strong> ' + (typeLabel[t] || t.replace(/_/g, ' '));
+  });
+
+  document.getElementById('q-type-summary-text').innerHTML =
+    'Found <strong>' + questions.length + '</strong> questions — ' + parts.join(', ') + '.';
+
+  document.getElementById('questionnaire-decision').style.display = '';
+  document.getElementById('remodel-form').style.display = 'none';
+
+  document.getElementById('step5-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function keepAsIs() {
+  document.getElementById('questionnaire-decision').style.display = 'none';
+  var preview = document.getElementById('preview-section');
+  if (preview && !preview.classList.contains('hidden')) {
+    preview.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function showRemodelFormUI() {
+  var total     = App.parsedQuestions.length;
+  var container = document.getElementById('remodel-type-inputs');
+  container.innerHTML = '';
+
+  document.getElementById('remodel-total-hint').textContent =
+    'Total uploaded: ' + total + ' questions. Specify how many of each type you want (sum must not exceed ' + total + ').';
+
+  var types = [
+    { value: 'multiple_choice',   label: 'Multiple Choice' },
+    { value: 'true_false',        label: 'True / False' },
+    { value: 'identification',    label: 'Identification' },
+    { value: 'multiple_response', label: 'Multiple Response' },
+    { value: 'short_answer',      label: 'Short Answer' },
+    { value: 'essay',             label: 'Essay' },
+    { value: 'enumeration',       label: 'Enumeration' },
+    { value: 'matching_type',     label: 'Matching Type' }
+  ];
+
+  types.forEach(function (type) {
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:flex;flex-direction:column;gap:0.25rem;min-width:110px;';
+    wrapper.innerHTML =
+      '<label style="font-size:0.78rem;font-weight:600;color:#4a5568;">' + type.label + '</label>' +
+      '<input type="number" class="remodel-count-input" min="0" value="0"' +
+      ' data-type="' + type.value + '"' +
+      ' style="width:65px;padding:0.3rem 0.4rem;border:1px solid #cbd5e0;border-radius:6px;font-size:0.9rem;">';
+    container.appendChild(wrapper);
+  });
+
+  container.querySelectorAll('.remodel-count-input').forEach(function (inp) {
+    inp.addEventListener('input', updateRemodelWarning);
+  });
+
+  document.getElementById('remodel-form').style.display = '';
+}
+
+function updateRemodelWarning() {
+  var total = App.parsedQuestions.length;
+  var sum   = 0;
+  document.querySelectorAll('.remodel-count-input').forEach(function (inp) {
+    sum += parseInt(inp.value) || 0;
+  });
+  var warning = document.getElementById('remodel-warning');
+  if (sum > 0 && sum > total) {
+    warning.style.display = '';
+    warning.textContent = 'Warning: total (' + sum + ') exceeds uploaded count (' + total + '). Please reduce.';
+  } else {
+    warning.style.display = 'none';
+    warning.textContent   = '';
+  }
+}
+
+function applyRemodel() {
+  var total        = App.parsedQuestions.length;
+  var distribution = {};
+  var sum          = 0;
+
+  document.querySelectorAll('.remodel-count-input').forEach(function (inp) {
+    var count = parseInt(inp.value) || 0;
+    if (count > 0) { distribution[inp.dataset.type] = count; sum += count; }
+  });
+
+  if (sum === 0)   { alert('Please specify at least one question type and count.'); return; }
+  if (sum > total) { alert('Total (' + sum + ') exceeds uploaded count (' + total + '). Please reduce.'); return; }
+
+  setButtonLoading('apply-remodel-btn', true);
+  showStep3Status('Remodeling ' + sum + ' questions with Gemini AI… This may take 30–60 seconds.');
+
+  api({ action: 'remodelQuestions', password: App.password,
+        questions: App.parsedQuestions, distribution: distribution })
+    .then(function (data) {
+      if (!data.success) { showStep3Status('Error: ' + data.error); return; }
+      App.parsedQuestions = normalizeQuestions(data.questions);
+      showStep3Status('Remodeled to ' + App.parsedQuestions.length + ' questions. Review below.');
+      document.getElementById('questionnaire-decision').style.display = 'none';
+      renderQuestionPreview(App.parsedQuestions);
+    })
+    .catch(function () { showStep3Status('Remodel failed. Please try again.'); })
+    .finally(function () { setButtonLoading('apply-remodel-btn', false); });
+}
 
 // ─────────────────────────────────────────────────────────────
 // TAB 1: QUESTION PREVIEW
