@@ -31,6 +31,17 @@
   </div>
 </div>
 
+<!-- ── GRACE PERIOD OVERLAY ──────────────────────────────────── -->
+<div class="violation-overlay hidden" id="grace-overlay">
+  <div class="violation-box">
+    <h2>⚠️ Please Return to the Exam</h2>
+    <p id="grace-message">You have exited fullscreen or switched away from this tab.</p>
+    <div id="grace-countdown" style="font-size:3.5rem;font-weight:800;color:#e53e3e;text-align:center;margin:1rem 0;line-height:1;">30</div>
+    <p style="text-align:center;color:#718096;margin-bottom:1rem;">seconds before this is flagged as a violation.</p>
+    <button class="btn btn-primary" id="grace-return-btn" style="width:100%;">I'm Back — Continue Exam</button>
+  </div>
+</div>
+
 <!-- ── AUTO-SUBMIT OVERLAY ───────────────────────────────────── -->
 <div class="violation-overlay hidden" id="auto-submit-overlay">
   <div class="violation-box auto-submit-box">
@@ -64,6 +75,19 @@
   <div class="loading-spinner" style="justify-content:center;">
     <div class="spinner"></div>
     <span id="status-message">Loading…</span>
+  </div>
+</div>
+
+<!-- ── ALREADY SUBMITTED ──────────────────────────────────────── -->
+<div id="already-submitted-section" class="hidden">
+  <div class="container">
+    <div class="entry-section card" style="margin-top:3rem;text-align:center;">
+      <div style="font-size:3rem;margin-bottom:0.75rem;">📋</div>
+      <h2>Already Submitted</h2>
+      <p>You have already taken this exam.</p>
+      <p id="already-short-code-info" style="font-size:0.9rem;color:#718096;margin:0.5rem 0 1.5rem;"></p>
+      <a class="btn btn-primary" id="already-view-score-btn" href="score.html" style="display:inline-block;">Check My Score →</a>
+    </div>
   </div>
 </div>
 
