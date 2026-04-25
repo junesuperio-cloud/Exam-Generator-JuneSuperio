@@ -508,6 +508,7 @@ function submitExamForm(status) {
     subjectId,
     title,
     examType:            getSelectedExamType(),
+    timezone:            document.getElementById('exam-timezone') ? document.getElementById('exam-timezone').value : 'Asia/Manila',
     openDateTime:        document.getElementById('open-datetime').value,
     closeDateTime:       document.getElementById('close-datetime').value,
     wholeTimer:          document.getElementById('whole-timer-toggle').checked ? document.getElementById('whole-timer-mins').value : '',
@@ -919,6 +920,18 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   if (perqToggle) perqToggle.addEventListener('change', function () {
     document.getElementById('perq-timer-secs').closest('.timer-sub').classList.toggle('hidden', !this.checked);
+    // Per-question timer requires no back navigation
+    var backToggle = document.getElementById('back-nav-toggle');
+    if (backToggle) {
+      if (this.checked) {
+        backToggle.checked  = false;
+        backToggle.disabled = true;
+        backToggle.closest('.toggle-wrapper').title = 'Disabled — back navigation is not allowed when per-question timer is active.';
+      } else {
+        backToggle.disabled = false;
+        backToggle.closest('.toggle-wrapper').title = '';
+      }
+    }
   });
 
   // Anti-cheat toggle

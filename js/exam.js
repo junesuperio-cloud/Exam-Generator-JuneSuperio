@@ -5,11 +5,11 @@
 // ─────────────────────────────────────────────────────────────
 var ExamState = {
   examId:           null,
-  examData:         null,      // { questions, title, wholeTimer, perQuestionTimer, allowBackNav, antiCheat, closeDateTime }
-  studentId:        null,      // temporary ID for violation logging before submission
+  examData:         null,
+  studentId:        null,
   firstName:        '',
   lastName:         '',
-  answers:          {},        // { questionId: value }
+  answers:          {},
   currentIndex:     0,
   startTime:        null,
   wholeTimerSecondsLeft: 0,
@@ -22,7 +22,11 @@ var ExamState = {
   examStarted:      false,
   examSubmitted:    false,
   antiCheat:        {},
-  firstViolationHandled: false
+  firstViolationHandled: false,
+  // Grace period state
+  graceActive:      false,
+  graceInterval:    null,
+  graceCountdown:   0
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -87,8 +91,41 @@ function showEntryForm(windowData) {
     hide('entry-error');
     ExamState.firstName = fn;
     ExamState.lastName  = ln;
-    loadExam();
+
+    // Check for an existing submission before loading the exam
+    var btn = document.getElementById('begin-btn');
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+    api({ action: 'checkStudentExists', examId: ExamState.examId, firstName: fn, lastName: ln })
+      .then(function (data) {
+        if (data.exists) {
+          showAlreadySubmitted(data.shortCode);
+        } else {
+          loadExam();
+        }
+      })
+      .catch(function () {
+        // If check fails, proceed — don't block the student
+        loadExam();
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = 'Begin Exam →';
+      });
   });
+}
+
+function showAlreadySubmitted(shortCode) {
+  hide('entry-section');
+  var info = document.getElementById('already-short-code-info');
+  if (info) {
+    info.textContent = shortCode
+      ? 'Your short code is: ' + shortCode + ' — use it on the score page.'
+      : 'Use the score page to look up your result.';
+  }
+  var link = document.getElementById('already-view-score-btn');
+  if (link) link.href = window.SCORE_PAGE_URL || 'score.html';
+  show('already-submitted-section');
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -157,7 +194,8 @@ function attachAntiCheatListeners() {
 
   if (ac.tabDetection) {
     document.addEventListener('visibilitychange', onVisibilityChange);
-    window.addEventListener('blur', onWindowBlur);
+    window.addEventListener('blur',  onWindowBlur);
+    window.addEventListener('focus', onWindowFocus);
   }
 
   if (ac.fullscreen) {
@@ -166,30 +204,93 @@ function attachAntiCheatListeners() {
     document.addEventListener('mozfullscreenchange',    onFullscreenChange);
     document.addEventListener('MSFullscreenChange',     onFullscreenChange);
   }
+
+  // Grace-period return button
+  var graceBtn = document.getElementById('grace-return-btn');
+  if (graceBtn) {
+    graceBtn.addEventListener('click', function () {
+      cancelGrace();
+      if (ExamState.antiCheat.fullscreen) requestFullscreen(document.documentElement);
+    });
+  }
 }
 
 function onVisibilityChange() {
   if (!ExamState.examStarted || ExamState.examSubmitted) return;
-  if (document.hidden) triggerViolation('TAB_SWITCH');
+  if (document.hidden) {
+    startGracePeriod('TAB_SWITCH');
+  } else if (ExamState.graceActive) {
+    cancelGrace();
+  }
 }
 
 function onWindowBlur() {
   if (!ExamState.examStarted || ExamState.examSubmitted) return;
-  triggerViolation('WINDOW_BLUR');
+  // Only trigger grace if tab detection is on; fullscreen-only exams rely on fullscreenchange
+  if (ExamState.antiCheat.tabDetection) startGracePeriod('WINDOW_BLUR');
+}
+
+function onWindowFocus() {
+  if (!ExamState.examStarted || ExamState.examSubmitted) return;
+  if (ExamState.graceActive) cancelGrace();
 }
 
 function onFullscreenChange() {
   if (!ExamState.examStarted || ExamState.examSubmitted) return;
-  if (exitFullscreenDetected()) triggerViolation('FULLSCREEN_EXIT');
+  if (exitFullscreenDetected()) {
+    startGracePeriod('FULLSCREEN_EXIT');
+  } else if (ExamState.graceActive) {
+    cancelGrace();
+  }
 }
 
-function triggerViolation(type) {
+// ─────────────────────────────────────────────────────────────
+// GRACE PERIOD
+// ─────────────────────────────────────────────────────────────
+function startGracePeriod(type) {
+  if (ExamState.graceActive || ExamState.examSubmitted) return;
+  ExamState.graceActive    = true;
+  ExamState.graceCountdown = 30;
+  pauseTimers();
+
+  var msgEl  = document.getElementById('grace-message');
+  var cntEl  = document.getElementById('grace-countdown');
+  if (msgEl) msgEl.textContent = type === 'FULLSCREEN_EXIT'
+    ? 'You exited fullscreen mode.' : 'You switched away from this tab or window.';
+  if (cntEl) cntEl.textContent = '30';
+  document.getElementById('grace-overlay').classList.remove('hidden');
+
+  ExamState.graceInterval = setInterval(function () {
+    ExamState.graceCountdown--;
+    if (cntEl) cntEl.textContent = ExamState.graceCountdown;
+
+    if (ExamState.graceCountdown <= 0) {
+      clearInterval(ExamState.graceInterval);
+      ExamState.graceInterval = null;
+      ExamState.graceActive   = false;
+      document.getElementById('grace-overlay').classList.add('hidden');
+      // Grace expired — now record it as a real violation
+      recordViolation(type);
+    }
+  }, 1000);
+}
+
+function cancelGrace() {
+  if (!ExamState.graceActive) return;
+  clearInterval(ExamState.graceInterval);
+  ExamState.graceInterval = null;
+  ExamState.graceActive   = false;
+  ExamState.graceCountdown = 0;
+  document.getElementById('grace-overlay').classList.add('hidden');
+  resumeTimers();
+}
+
+function recordViolation(type) {
   if (ExamState.examSubmitted) return;
   ExamState.violationCount++;
   var logEntry = { type: type, timestamp: new Date().toISOString(), count: ExamState.violationCount };
   ExamState.violationLog.push(logEntry);
 
-  // Log to server
   api({ action: 'logViolation', studentId: ExamState.studentId, examId: ExamState.examId,
         type: type, timestamp: logEntry.timestamp }).catch(function(){});
 
@@ -215,9 +316,7 @@ function showViolationWarning(type) {
 
   document.getElementById('violation-return-btn').onclick = function () {
     overlay.classList.add('hidden');
-    if (ExamState.antiCheat.fullscreen) {
-      requestFullscreen(document.documentElement);
-    }
+    if (ExamState.antiCheat.fullscreen) requestFullscreen(document.documentElement);
     resumeTimers();
   };
 }
@@ -257,6 +356,11 @@ function startExam() {
   show('exam-section');
 
   var data = ExamState.examData;
+
+  // Per-question timer always disables back navigation
+  if (data.perQuestionTimer && Number(data.perQuestionTimer) > 0) {
+    data.allowBackNav = false;
+  }
 
   // Show no-back-nav notice if applicable
   if (!data.allowBackNav) {
@@ -677,9 +781,17 @@ function showSubmitSuccess(shortCode, score, total, pct) {
   var success = document.getElementById('submit-success');
   document.getElementById('success-short-code').textContent = shortCode || 'N/A';
   document.getElementById('score-link').href = window.SCORE_PAGE_URL || '../score.html';
-  var closeInfo = ExamState.examData ? ExamState.examData.closeDateTime : '';
+  var data      = ExamState.examData || {};
+  var closeInfo = data.closeDateTime || '';
+  var tz        = data.timezone || 'Asia/Manila';
+  var tzLabel   = '';
+  try {
+    // Show timezone abbreviation/offset for clarity
+    var tzDate  = new Date();
+    tzLabel     = ' (' + tzDate.toLocaleString('en-US', { timeZone: tz, timeZoneName: 'short' }).split(', ')[1].split(' ').pop() + ')';
+  } catch(_) {}
   document.getElementById('score-avail-info').textContent = closeInfo
-    ? 'Scores will be available after the exam closes on ' + closeInfo + '.'
+    ? 'Scores will be available after the exam closes on ' + closeInfo + tzLabel + '.'
     : 'Scores will be available after the instructor closes the exam.';
   success.classList.remove('hidden');
 }
