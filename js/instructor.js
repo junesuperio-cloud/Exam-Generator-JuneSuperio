@@ -509,6 +509,7 @@ function submitExamForm(status) {
     title,
     examType:            getSelectedExamType(),
     timezone:            document.getElementById('exam-timezone') ? document.getElementById('exam-timezone').value : 'Asia/Manila',
+    examWeight:          parseFloat(document.getElementById('exam-weight') ? document.getElementById('exam-weight').value : 0) || 0,
     openDateTime:        document.getElementById('open-datetime').value,
     closeDateTime:       document.getElementById('close-datetime').value,
     wholeTimer:          document.getElementById('whole-timer-toggle').checked ? document.getElementById('whole-timer-mins').value : '',
@@ -691,7 +692,46 @@ function initGradebookTab() {
     opt.textContent = s['Subject Name'] + ' (' + s['Subject Code'] + ')';
     sel.appendChild(opt);
   });
-  sel.onchange = function () { loadGradebook(sel.value); };
+  sel.onchange = function () {
+    if (sel.value) {
+      document.getElementById('gradebook-view-toggle').style.display = 'flex';
+      setGradebookView('exam');
+      loadGradebook(sel.value);
+    } else {
+      document.getElementById('gradebook-view-toggle').style.display = 'none';
+      document.getElementById('gradebook-content').innerHTML = '';
+      document.getElementById('student-summary-content').classList.add('hidden');
+    }
+  };
+
+  var byExamBtn    = document.getElementById('gb-by-exam-btn');
+  var byStudentBtn = document.getElementById('gb-by-student-btn');
+  if (byExamBtn) byExamBtn.addEventListener('click', function () {
+    setGradebookView('exam');
+    loadGradebook(sel.value);
+  });
+  if (byStudentBtn) byStudentBtn.addEventListener('click', function () {
+    setGradebookView('student');
+    loadStudentSummary(sel.value);
+  });
+}
+
+function setGradebookView(mode) {
+  var byExamBtn    = document.getElementById('gb-by-exam-btn');
+  var byStudentBtn = document.getElementById('gb-by-student-btn');
+  var examContent    = document.getElementById('gradebook-content');
+  var studentContent = document.getElementById('student-summary-content');
+  if (mode === 'exam') {
+    if (byExamBtn)    { byExamBtn.className    = 'btn btn-sm btn-primary'; }
+    if (byStudentBtn) { byStudentBtn.className = 'btn btn-sm btn-outline'; }
+    examContent.style.display = '';
+    studentContent.classList.add('hidden');
+  } else {
+    if (byExamBtn)    { byExamBtn.className    = 'btn btn-sm btn-outline'; }
+    if (byStudentBtn) { byStudentBtn.className = 'btn btn-sm btn-primary'; }
+    examContent.style.display = 'none';
+    studentContent.classList.remove('hidden');
+  }
 }
 
 function loadGradebook(subjectId) {
@@ -830,6 +870,84 @@ function exportGradebook(examId) {
       a.href = url; a.download = 'gradebook_' + examId + '.csv'; a.click();
       URL.revokeObjectURL(url);
     });
+}
+
+function loadStudentSummary(subjectId) {
+  if (!subjectId) return;
+  var container = document.getElementById('student-summary-content');
+  container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div> Loading student summary…</div>';
+
+  api({ action: 'getStudentSummary', password: App.password, subjectId })
+    .then(function (data) {
+      if (!data.success) { container.innerHTML = '<p class="error">Could not load student summary.</p>'; return; }
+      renderStudentSummary(data.students, data.examList, data.hasWeights);
+    })
+    .catch(function () { container.innerHTML = '<p class="error">Connection error.</p>'; });
+}
+
+function renderStudentSummary(students, examList, hasWeights) {
+  var container = document.getElementById('student-summary-content');
+  container.innerHTML = '';
+
+  if (!students || !students.length) {
+    container.innerHTML = '<p class="empty-state">No student data found for this subject.</p>';
+    return;
+  }
+
+  var card = document.createElement('div');
+  card.className = 'card';
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;';
+  hdr.innerHTML = '<h3 style="margin:0;">Student Performance Summary</h3>' +
+    (hasWeights ? '<span class="hint" style="margin:0;">Weighted grade based on configured exam weights.</span>' : '<span class="hint" style="margin:0;">Set exam weights in Step 5 to enable weighted grading.</span>');
+  card.appendChild(hdr);
+
+  // Table
+  var table = document.createElement('table');
+  table.className = 'gradebook-table';
+  table.style.fontSize = '0.85rem';
+
+  // Build header row
+  var headCols = ['<th>Student</th>'];
+  examList.forEach(function (e) {
+    headCols.push('<th style="min-width:110px;">' + escHtml(e.title) +
+      (e.weight > 0 ? '<br><span style="font-weight:400;font-size:0.75rem;color:#718096;">' + e.weight + '% weight</span>' : '') + '</th>');
+  });
+  if (hasWeights) headCols.push('<th>Weighted Grade</th>');
+  headCols.push('<th>Avg (taken)</th>');
+  table.innerHTML = '<thead><tr>' + headCols.join('') + '</tr></thead>';
+
+  var tbody = document.createElement('tbody');
+  students.forEach(function (stu) {
+    var tr = document.createElement('tr');
+    var cells = ['<td><strong>' + escHtml(stu.lastName) + ', ' + escHtml(stu.firstName) + '</strong></td>'];
+
+    examList.forEach(function (e) {
+      var rec = stu.exams[e.examId];
+      if (rec) {
+        var pct = Number(rec.percentage).toFixed(1);
+        var flag = rec.violationFlag && rec.violationFlag !== 'NONE' ? ' ⚠️' : '';
+        cells.push('<td>' + rec.score + '/' + rec.total + '<br><span style="color:' + (rec.percentage >= 75 ? '#276749' : '#c0392b') + ';font-weight:600;">' + pct + '%</span>' + flag + '</td>');
+      } else {
+        cells.push('<td style="color:#a0aec0;text-align:center;">—</td>');
+      }
+    });
+
+    if (hasWeights) {
+      var wg = stu.weightedGrade !== null ? Number(stu.weightedGrade).toFixed(2) + '%' : 'N/A';
+      var wgColor = stu.weightedGrade !== null ? (stu.weightedGrade >= 75 ? '#276749' : '#c0392b') : '#a0aec0';
+      cells.push('<td style="font-weight:700;color:' + wgColor + ';">' + wg + '</td>');
+    }
+    cells.push('<td>' + Number(stu.simpleAvg).toFixed(1) + '%</td>');
+
+    tr.innerHTML = cells.join('');
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  card.appendChild(table);
+  container.appendChild(card);
 }
 
 // ─────────────────────────────────────────────────────────────
