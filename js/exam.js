@@ -749,9 +749,10 @@ function showError(msg) {
 function api(body) {
   var url = window.APPS_SCRIPT_URL;
   if (!url) return Promise.reject(new Error('Apps Script URL not configured.'));
+  // text/plain avoids the CORS preflight that Apps Script cannot handle
   return fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(body)
   }).then(function (r) { return r.json(); });
 }
