@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exam Generator — Instructor Dashboard</title>
   <link rel="stylesheet" href="css/styles.css">
+  <script>
+    window.APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyr_308Y5fyZJcbKkeDHiLCgSyEus6sOStlqO0Gk_y7KjKgwfxYj3Od3IKYr8dBqOiATQ/exec';
+    window.SCORE_PAGE_URL  = 'score.html';
+  </script>
 </head>
 <body>
 
@@ -104,7 +108,7 @@
               <input type="radio" name="upload-mode" value="reference">
               <span class="mode-card-icon">📚</span>
               <strong>Upload Reference Material</strong>
-              <p>Generate new questions using Claude AI from your material</p>
+              <p>Generate new questions using Gemini AI from your material</p>
             </label>
           </div>
         </div>
@@ -135,62 +139,77 @@
         <div class="card" id="step5-section" style="display:none;">
           <h2>Step 5 — Exam Settings</h2>
 
-          <!-- Question Types -->
-          <div class="form-group">
-            <label class="form-label">Question Types</label>
-            <div class="qtype-cards">
-              <label class="qtype-card" title="Student picks one correct answer from 4 options.">
-                <input type="checkbox" name="qtype" value="multiple_choice" checked> Multiple Choice
-              </label>
-              <label class="qtype-card" title="Student decides if a statement is True or False.">
-                <input type="checkbox" name="qtype" value="true_false"> True / False
-              </label>
-              <label class="qtype-card" title="Student types an exact word or short phrase.">
-                <input type="checkbox" name="qtype" value="identification"> Identification
-              </label>
-              <label class="qtype-card" title="Student selects ALL correct answers.">
-                <input type="checkbox" name="qtype" value="multiple_response"> Multiple Response
-              </label>
-              <label class="qtype-card" title="Student writes a sentence or paragraph — graded manually.">
-                <input type="checkbox" name="qtype" value="short_answer"> Short Answer
-              </label>
-              <label class="qtype-card" title="Student writes an extended response — graded manually.">
-                <input type="checkbox" name="qtype" value="essay"> Essay
-              </label>
-              <label class="qtype-card" title="Student lists a specific number of items.">
-                <input type="checkbox" name="qtype" value="enumeration"> Enumeration
-              </label>
-              <label class="qtype-card" title="Student matches Column A to Column B.">
-                <input type="checkbox" name="qtype" value="matching_type"> Matching Type
-              </label>
+          <!-- ── QUESTIONNAIRE MODE: decision panel ── -->
+          <div id="questionnaire-decision" style="display:none;">
+            <div class="alert alert-info" id="q-type-summary-text" style="margin-bottom:1rem;"></div>
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+              <button class="btn btn-success" id="keep-as-is-btn">✅ Keep Questions As-Is</button>
+              <button class="btn btn-outline" id="remodel-types-btn">🔄 Remodel Question Types with Gemini AI</button>
             </div>
+            <div id="remodel-form" style="display:none;border:1px solid #e2e8f0;border-radius:8px;padding:1rem;background:#f8fafc;">
+              <h4 style="margin:0 0 0.5rem;">Set Question Type Distribution</h4>
+              <p class="hint" id="remodel-total-hint" style="margin-bottom:0.75rem;"></p>
+              <div id="remodel-type-inputs" style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.75rem;"></div>
+              <p id="remodel-warning" class="hint" style="color:#e53e3e;display:none;margin-bottom:0.75rem;"></p>
+              <button class="btn btn-primary" id="apply-remodel-btn">✨ Apply Remodel</button>
+            </div>
+            <hr class="section-divider">
           </div>
 
-          <!-- Question Count (Reference Mode) -->
-          <div class="form-group">
-            <label class="form-label" for="question-count">Number of Questions to Generate</label>
-            <input type="number" id="question-count" min="1" max="100" value="20" style="max-width:100px;">
-          </div>
-
-          <!-- Bloom's Taxonomy (Reference Mode) -->
-          <div class="form-group">
-            <label class="form-label">Bloom's Taxonomy (Reference Mode)</label>
-            <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-              <label><input type="radio" name="bloom-mode" value="General" checked> General</label>
-              <label><input type="radio" name="bloom-mode" value="Strict"> Strictly Bloom's</label>
-              <label><input type="radio" name="bloom-mode" value="Both"> Both</label>
+          <!-- ── REFERENCE MODE ONLY: question generation settings ── -->
+          <div id="reference-only-settings" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Question Types to Generate</label>
+              <div class="qtype-cards">
+                <label class="qtype-card" title="Student picks one correct answer from 4 options.">
+                  <input type="checkbox" name="qtype" value="multiple_choice" checked> Multiple Choice
+                </label>
+                <label class="qtype-card" title="Student decides if a statement is True or False.">
+                  <input type="checkbox" name="qtype" value="true_false"> True / False
+                </label>
+                <label class="qtype-card" title="Student types an exact word or short phrase.">
+                  <input type="checkbox" name="qtype" value="identification"> Identification
+                </label>
+                <label class="qtype-card" title="Student selects ALL correct answers.">
+                  <input type="checkbox" name="qtype" value="multiple_response"> Multiple Response
+                </label>
+                <label class="qtype-card" title="Student writes a sentence or paragraph — graded manually.">
+                  <input type="checkbox" name="qtype" value="short_answer"> Short Answer
+                </label>
+                <label class="qtype-card" title="Student writes an extended response — graded manually.">
+                  <input type="checkbox" name="qtype" value="essay"> Essay
+                </label>
+                <label class="qtype-card" title="Student lists a specific number of items.">
+                  <input type="checkbox" name="qtype" value="enumeration"> Enumeration
+                </label>
+                <label class="qtype-card" title="Student matches Column A to Column B.">
+                  <input type="checkbox" name="qtype" value="matching_type"> Matching Type
+                </label>
+              </div>
             </div>
-            <div id="bloom-levels-section" class="hidden" style="margin-top:0.6rem;display:flex;gap:0.6rem;flex-wrap:wrap;">
-              <label><input type="checkbox" name="bloom-level" value="Remember"> Remember</label>
-              <label><input type="checkbox" name="bloom-level" value="Understand"> Understand</label>
-              <label><input type="checkbox" name="bloom-level" value="Apply"> Apply</label>
-              <label><input type="checkbox" name="bloom-level" value="Analyze"> Analyze</label>
-              <label><input type="checkbox" name="bloom-level" value="Evaluate"> Evaluate</label>
-              <label><input type="checkbox" name="bloom-level" value="Create"> Create</label>
+            <div class="form-group">
+              <label class="form-label" for="question-count">Number of Questions to Generate</label>
+              <input type="number" id="question-count" min="1" max="100" value="20" style="max-width:100px;">
             </div>
+            <div class="form-group">
+              <label class="form-label">Bloom's Taxonomy</label>
+              <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                <label><input type="radio" name="bloom-mode" value="General" checked> General</label>
+                <label><input type="radio" name="bloom-mode" value="Strict"> Strictly Bloom's</label>
+                <label><input type="radio" name="bloom-mode" value="Both"> Both</label>
+              </div>
+              <div id="bloom-levels-section" class="hidden" style="margin-top:0.6rem;display:flex;gap:0.6rem;flex-wrap:wrap;">
+                <label><input type="checkbox" name="bloom-level" value="Remember"> Remember</label>
+                <label><input type="checkbox" name="bloom-level" value="Understand"> Understand</label>
+                <label><input type="checkbox" name="bloom-level" value="Apply"> Apply</label>
+                <label><input type="checkbox" name="bloom-level" value="Analyze"> Analyze</label>
+                <label><input type="checkbox" name="bloom-level" value="Evaluate"> Evaluate</label>
+                <label><input type="checkbox" name="bloom-level" value="Create"> Create</label>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="generate-exam-btn">✨ Generate Exam with Gemini AI</button>
+            <hr class="section-divider">
           </div>
-
-          <hr class="section-divider">
 
           <!-- Timing -->
           <h3>Timing</h3>
@@ -271,7 +290,6 @@
             <input type="text" id="exam-notes" placeholder="Any notes for this exam">
           </div>
 
-          <button class="btn btn-primary" id="generate-exam-btn">✨ Generate Exam with Claude AI</button>
         </div>
 
         <!-- STEP 6: QUESTION PREVIEW -->
