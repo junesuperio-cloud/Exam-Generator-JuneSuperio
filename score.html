@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check Your Exam Score</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    // Set your Apps Script Web App URL here
+    window.APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyr_308Y5fyZJcbKkeDHiLCgSyEus6sOStlqO0Gk_y7KjKgwfxYj3Od3IKYr8dBqOiATQ/exec';
+  </script>
+</head>
+<body>
+
+  <header class="page-header">
+    <div class="container">
+      <h1>📊 Check Your Exam Score</h1>
+      <p>Enter your 6-character short code to see your result.</p>
+    </div>
+  </header>
+
+  <main class="page-body">
+    <div class="container">
+      <div class="score-page">
+
+        <form id="score-form" class="card">
+          <label class="form-label" for="short-code-input">Your Short Code</label>
+          <div class="score-form">
+            <input
+              type="text"
+              id="short-code-input"
+              class="short-code-input"
+              maxlength="6"
+              placeholder="ABC123"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+            >
+            <button type="submit" class="btn btn-primary" id="lookup-btn">Look Up My Score</button>
+          </div>
+          <p class="hint">Short codes are 6 characters (letters and numbers). Not case-sensitive.</p>
+          <p id="score-error" class="error-text hidden"></p>
+        </form>
+
+        <div id="score-result" class="hidden"></div>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="js/score.js"></script>
+</body>
+</html>

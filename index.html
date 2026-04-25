@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Generator — Instructor Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ── PASSWORD MODAL ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="password-modal">
+  <div class="modal-box">
+    <h2>🔐 Instructor Login</h2>
+    <p style="color:#666;font-size:0.9rem;margin-bottom:1rem;">Enter your dashboard password to continue.</p>
+    <form id="password-form">
+      <div class="form-group">
+        <label class="form-label" for="password-input">Password</label>
+        <input type="password" id="password-input" placeholder="Enter password" autocomplete="current-password">
+        <p class="error-text" id="password-error"></p>
+      </div>
+      <button type="submit" class="btn btn-primary" id="password-btn" style="width:100%;">Login</button>
+    </form>
+  </div>
+</div>
+
+<!-- ── MAIN DASHBOARD ─────────────────────────────────────────── -->
+<div id="dashboard" class="hidden">
+
+  <header class="page-header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <h1>📋 Exam Generator</h1>
+        <p>Criminology Instructor Dashboard</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-body">
+    <div class="container">
+
+      <!-- TAB NAVIGATION -->
+      <nav class="tabs-nav">
+        <button class="tab-btn" data-tab="create">➕ Create Exam</button>
+        <button class="tab-btn" data-tab="exams">📁 My Exams</button>
+        <button class="tab-btn" data-tab="gradebook">📊 Gradebook</button>
+        <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+      </nav>
+
+      <!-- ── TAB 1: CREATE EXAM ──────────────────────────────────── -->
+      <div class="tab-pane" id="tab-create">
+
+        <!-- STEP 1: SUBJECT -->
+        <div class="card">
+          <h2>Step 1 — Subject</h2>
+          <div class="form-group">
+            <label class="form-label" for="subject-select-create">Select Subject</label>
+            <select id="subject-select-create" class="subject-select">
+              <option value="">-- Select Subject --</option>
+            </select>
+          </div>
+          <button class="btn btn-outline btn-sm" id="new-subject-toggle">+ Create New Subject</button>
+
+          <div id="new-subject-form" class="hidden" style="margin-top:1rem;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="new-subject-name">Subject Name</label>
+                <input type="text" id="new-subject-name" placeholder="e.g. Criminology Law">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="new-subject-code">Subject Code</label>
+                <input type="text" id="new-subject-code" placeholder="e.g. CRIM101">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="new-subject-notes">Notes (optional)</label>
+              <input type="text" id="new-subject-notes" placeholder="Optional notes">
+            </div>
+            <button class="btn btn-success" id="save-subject-btn">Save Subject</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: EXAM TITLE -->
+        <div class="card">
+          <h2>Step 2 — Exam Title</h2>
+          <div class="form-group">
+            <label class="form-label" for="exam-title-input">Exam Title</label>
+            <input type="text" id="exam-title-input" placeholder="e.g. Midterm Exam – Criminology Laws">
+          </div>
+        </div>
+
+        <!-- STEP 3: UPLOAD MODE -->
+        <div class="card">
+          <h2>Step 3 — Upload Mode</h2>
+          <p class="hint">Choose whether you are uploading an existing questionnaire or reference material to generate questions from.</p>
+          <div class="mode-cards">
+            <label class="mode-card">
+              <input type="radio" name="upload-mode" value="questionnaire" checked>
+              <span class="mode-card-icon">📄</span>
+              <strong>Upload Questionnaire</strong>
+              <p>Parse existing questions and answer keys from a file</p>
+            </label>
+            <label class="mode-card">
+              <input type="radio" name="upload-mode" value="reference">
+              <span class="mode-card-icon">📚</span>
+              <strong>Upload Reference Material</strong>
+              <p>Generate new questions using Claude AI from your material</p>
+            </label>
+          </div>
+        </div>
+
+        <!-- STEP 4: FILE UPLOAD -->
+        <div class="card">
+          <h2>Step 4 — Upload File</h2>
+          <div id="file-dropzone" class="dropzone">
+            <span class="dropzone-icon">📂</span>
+            <p><strong>Drag &amp; drop a file here</strong> or click to browse</p>
+            <p style="font-size:0.8rem;margin-top:0.3rem;">Supports: PDF, DOCX, DOC, PPTX, PPT</p>
+            <input type="file" id="file-input" accept=".pdf,.docx,.doc,.pptx,.ppt" style="display:none">
+          </div>
+          <p id="file-name-display" class="hidden" style="margin-top:0.5rem;font-weight:600;"></p>
+
+          <p style="margin:0.75rem 0;text-align:center;color:#999;">— or paste a Google Docs / Slides URL —</p>
+
+          <div class="form-group">
+            <label class="form-label" for="google-url-input">Google Docs / Slides URL</label>
+            <input type="url" id="google-url-input" placeholder="https://docs.google.com/document/d/...">
+          </div>
+
+          <button class="btn btn-primary" id="parse-file-btn">Parse File / Load URL</button>
+          <p id="parse-status" class="parse-status hidden"></p>
+        </div>
+
+        <!-- STEP 5: EXAM SETTINGS (shown after load) -->
+        <div class="card" id="step5-section" style="display:none;">
+          <h2>Step 5 — Exam Settings</h2>
+
+          <!-- Question Types -->
+          <div class="form-group">
+            <label class="form-label">Question Types</label>
+            <div class="qtype-cards">
+              <label class="qtype-card" title="Student picks one correct answer from 4 options.">
+                <input type="checkbox" name="qtype" value="multiple_choice" checked> Multiple Choice
+              </label>
+              <label class="qtype-card" title="Student decides if a statement is True or False.">
+                <input type="checkbox" name="qtype" value="true_false"> True / False
+              </label>
+              <label class="qtype-card" title="Student types an exact word or short phrase.">
+                <input type="checkbox" name="qtype" value="identification"> Identification
+              </label>
+              <label class="qtype-card" title="Student selects ALL correct answers.">
+                <input type="checkbox" name="qtype" value="multiple_response"> Multiple Response
+              </label>
+              <label class="qtype-card" title="Student writes a sentence or paragraph — graded manually.">
+                <input type="checkbox" name="qtype" value="short_answer"> Short Answer
+              </label>
+              <label class="qtype-card" title="Student writes an extended response — graded manually.">
+                <input type="checkbox" name="qtype" value="essay"> Essay
+              </label>
+              <label class="qtype-card" title="Student lists a specific number of items.">
+                <input type="checkbox" name="qtype" value="enumeration"> Enumeration
+              </label>
+              <label class="qtype-card" title="Student matches Column A to Column B.">
+                <input type="checkbox" name="qtype" value="matching_type"> Matching Type
+              </label>
+            </div>
+          </div>
+
+          <!-- Question Count (Reference Mode) -->
+          <div class="form-group">
+            <label class="form-label" for="question-count">Number of Questions to Generate</label>
+            <input type="number" id="question-count" min="1" max="100" value="20" style="max-width:100px;">
+          </div>
+
+          <!-- Bloom's Taxonomy (Reference Mode) -->
+          <div class="form-group">
+            <label class="form-label">Bloom's Taxonomy (Reference Mode)</label>
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+              <label><input type="radio" name="bloom-mode" value="General" checked> General</label>
+              <label><input type="radio" name="bloom-mode" value="Strict"> Strictly Bloom's</label>
+              <label><input type="radio" name="bloom-mode" value="Both"> Both</label>
+            </div>
+            <div id="bloom-levels-section" class="hidden" style="margin-top:0.6rem;display:flex;gap:0.6rem;flex-wrap:wrap;">
+              <label><input type="checkbox" name="bloom-level" value="Remember"> Remember</label>
+              <label><input type="checkbox" name="bloom-level" value="Understand"> Understand</label>
+              <label><input type="checkbox" name="bloom-level" value="Apply"> Apply</label>
+              <label><input type="checkbox" name="bloom-level" value="Analyze"> Analyze</label>
+              <label><input type="checkbox" name="bloom-level" value="Evaluate"> Evaluate</label>
+              <label><input type="checkbox" name="bloom-level" value="Create"> Create</label>
+            </div>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- Timing -->
+          <h3>Timing</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="open-datetime">Exam Opens</label>
+              <input type="datetime-local" id="open-datetime">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="close-datetime">Exam Closes</label>
+              <input type="datetime-local" id="close-datetime">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="toggle-wrapper">
+              <label class="toggle-switch"><input type="checkbox" id="whole-timer-toggle"><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Whole Exam Timer</span>
+            </div>
+            <div class="timer-sub hidden" style="margin-left:52px;">
+              <label class="form-label" for="whole-timer-mins">Duration (minutes)</label>
+              <input type="number" id="whole-timer-mins" min="1" value="60" style="max-width:100px;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="toggle-wrapper">
+              <label class="toggle-switch"><input type="checkbox" id="perq-timer-toggle"><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Per-Question Timer</span>
+            </div>
+            <div class="timer-sub hidden" style="margin-left:52px;">
+              <label class="form-label" for="perq-timer-secs">Seconds per question</label>
+              <input type="number" id="perq-timer-secs" min="5" value="60" style="max-width:100px;">
+              <p class="hint">When the per-question timer expires, the current answer is saved and the exam advances automatically.</p>
+            </div>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- Navigation & Anti-Cheat -->
+          <h3>Navigation &amp; Anti-Cheat</h3>
+          <div class="form-group">
+            <div class="toggle-wrapper">
+              <label class="toggle-switch"><input type="checkbox" id="back-nav-toggle" checked><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Allow Back Navigation</span>
+            </div>
+            <p class="hint" style="margin-left:52px;">When OFF, students cannot return to previous questions.</p>
+          </div>
+
+          <div class="form-group">
+            <div class="toggle-wrapper">
+              <label class="toggle-switch"><input type="checkbox" id="anti-cheat-toggle" checked><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Enable Anti-Cheat</span>
+            </div>
+            <div id="anti-cheat-options" style="margin-left:52px;">
+              <label style="display:block;margin-bottom:0.3rem;"><input type="checkbox" id="ac-fullscreen" checked> Enforce fullscreen mode</label>
+              <label style="display:block;margin-bottom:0.3rem;"><input type="checkbox" id="ac-tab" checked> Detect tab / window switching</label>
+              <label style="display:block;margin-bottom:0.3rem;"><input type="checkbox" id="ac-autosubmit" checked> Warn once, then auto-submit on 2nd violation</label>
+              <p class="hint">Students receive one warning. A second violation auto-submits their exam and flags it in the gradebook.</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="toggle-wrapper">
+              <label class="toggle-switch"><input type="checkbox" id="shuffle-q-toggle" checked><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Shuffle Question Order</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="toggle-wrapper">
+              <label class="toggle-switch"><input type="checkbox" id="shuffle-a-toggle" checked><span class="toggle-slider"></span></label>
+              <span class="toggle-label">Shuffle Answer Choices (MC only)</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="exam-notes">Notes (optional)</label>
+            <input type="text" id="exam-notes" placeholder="Any notes for this exam">
+          </div>
+
+          <button class="btn btn-primary" id="generate-exam-btn">✨ Generate Exam with Claude AI</button>
+        </div>
+
+        <!-- STEP 6: QUESTION PREVIEW -->
+        <div id="preview-section" class="hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
+            <h2 style="margin:0;">Step 6 — Review &amp; Edit Questions</h2>
+            <button class="btn btn-outline btn-sm" id="add-question-btn">+ Add Question Manually</button>
+          </div>
+          <div id="question-preview-list"></div>
+
+          <!-- STEP 7: SAVE -->
+          <div class="card" id="exam-link-banner" style="display:none;">
+            <h3>🔗 Exam Activated!</h3>
+            <div class="exam-link-row">
+              <input type="text" id="exam-link-display" readonly>
+              <button class="btn btn-success" id="copy-link-btn">📋 Copy</button>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-outline" id="save-draft-btn">💾 Save as Draft</button>
+            <button class="btn btn-success" id="save-activate-btn">🚀 Save &amp; Activate Exam</button>
+          </div>
+        </div>
+
+      </div><!-- /tab-create -->
+
+      <!-- ── TAB 2: MY EXAMS ─────────────────────────────────────── -->
+      <div class="tab-pane" id="tab-exams">
+        <div class="card" style="margin-bottom:1rem;">
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;">
+            <div>
+              <label class="form-label" for="filter-subject">Subject</label>
+              <select id="filter-subject" class="subject-select" style="min-width:180px;"></select>
+            </div>
+            <div>
+              <label class="form-label" for="filter-status">Status</label>
+              <select id="filter-status" style="min-width:120px;">
+                <option value="All">All</option>
+                <option value="Draft">Draft</option>
+                <option value="Active">Active</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="exams-list"></div>
+      </div>
+
+      <!-- ── TAB 3: GRADEBOOK ───────────────────────────────────── -->
+      <div class="tab-pane" id="tab-gradebook">
+        <div class="card" style="margin-bottom:1rem;">
+          <label class="form-label" for="gradebook-subject-select">Select Subject</label>
+          <select id="gradebook-subject-select" style="max-width:360px;"></select>
+        </div>
+        <div id="gradebook-content"></div>
+      </div>
+
+      <!-- ── TAB 4: SETTINGS ────────────────────────────────────── -->
+      <div class="tab-pane" id="tab-settings">
+        <div class="card">
+          <h2>Settings</h2>
+
+          <div class="settings-group">
+            <h3>📡 Connection</h3>
+            <p class="hint">Your Apps Script Web App URL is configured in <code>js/instructor.js</code>.</p>
+            <button class="btn btn-outline btn-sm" id="test-email-btn">Test Connection</button>
+          </div>
+
+          <div class="settings-group">
+            <h3>📄 Google Sheet</h3>
+            <p>Open your gradebook spreadsheet to view raw data or make manual edits.</p>
+            <p class="hint">The Sheet ID is stored in your Apps Script Script Properties under <code>SHEET_ID</code>.</p>
+          </div>
+
+          <div class="settings-group">
+            <h3>📖 Setup Guide</h3>
+            <p><a href="docs/SETUP.md" target="_blank">View SETUP.md</a> for full deployment instructions.</p>
+          </div>
+
+          <div class="settings-group">
+            <h3>🔑 Password</h3>
+            <p>To change the instructor password, compute a new SHA-256 hash of your desired password and update <code>INSTRUCTOR_PASSWORD_HASH</code> in your Apps Script Script Properties.</p>
+            <p class="hint">You can generate a SHA-256 hash at <a href="https://emn178.github.io/online-tools/sha256.html" target="_blank">this free tool</a>.</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /container -->
+  </main>
+</div><!-- /dashboard -->
+
+<!-- ── EXAM DETAIL MODAL ──────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="exam-detail-modal">
+  <div class="modal-box" style="max-width:550px;">
+    <button class="modal-close-btn" id="close-detail-modal">✕</button>
+    <h2 id="exam-detail-title"></h2>
+    <table style="width:100%;border-collapse:collapse;margin:1rem 0;">
+      <tr><td style="padding:6px;font-weight:bold;width:40%;">Status</td><td id="exam-detail-status" style="padding:6px;"></td></tr>
+      <tr><td style="padding:6px;font-weight:bold;">Questions</td><td id="exam-detail-questions" style="padding:6px;"></td></tr>
+      <tr><td style="padding:6px;font-weight:bold;">Exam Link</td><td style="padding:6px;"><a id="exam-detail-link" href="#" target="_blank">Open</a></td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── ANSWER REVIEW MODAL ───────────────────────────────────── -->
+<div class="modal-overlay hidden" id="answer-modal">
+  <div class="modal-box" style="max-width:680px;max-height:85vh;overflow-y:auto;">
+    <button class="modal-close-btn" id="close-answer-modal">✕</button>
+    <h2 id="answer-modal-name"></h2>
+    <p id="answer-modal-score" style="font-size:1.1rem;font-weight:700;color:var(--clr-primary);"></p>
+    <div id="answer-list"></div>
+  </div>
+</div>
+
+<!-- ── TOAST ─────────────────────────────────────────────────── -->
+<div id="toast" class="hidden"></div>
+
+<script src="js/instructor.js"></script>
+<script>
+  // Ensure step5-section shows after parse
+  document.getElementById('step5-section').style.display = '';
+  document.getElementById('step5-section').classList.add('hidden');
+  document.getElementById('parse-file-btn').addEventListener('click', function(){
+    document.getElementById('step5-section').classList.remove('hidden');
+  });
+</script>
+</body>
+</html>
