@@ -230,6 +230,36 @@ function doParseFile(params) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// TAB 1: QUESTION TYPE ALLOCATION (sync checkbox ↔ count input)
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  function syncQtypeAlloc() {
+    var total = 0;
+    document.querySelectorAll('input[name="qtype"]').forEach(function (cb) {
+      var countInput = document.querySelector('.qtype-count[data-type="' + cb.value + '"]');
+      if (!countInput) return;
+      if (cb.checked) {
+        countInput.disabled = false;
+        total += parseInt(countInput.value) || 0;
+      } else {
+        countInput.disabled = true;
+      }
+    });
+    var totalEl = document.getElementById('qtype-total-display');
+    if (totalEl) totalEl.textContent = total;
+  }
+
+  document.querySelectorAll('input[name="qtype"]').forEach(function (cb) {
+    cb.addEventListener('change', syncQtypeAlloc);
+  });
+  document.querySelectorAll('.qtype-count').forEach(function (inp) {
+    inp.addEventListener('input', syncQtypeAlloc);
+  });
+
+  syncQtypeAlloc(); // initial sync
+});
+
+// ─────────────────────────────────────────────────────────────
 // TAB 1: GENERATE EXAM (Reference Mode)
 // ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
@@ -239,14 +269,21 @@ document.addEventListener('DOMContentLoaded', function () {
   genBtn.addEventListener('click', function () {
     var subjectId = document.getElementById('subject-select-create').value;
     var title     = document.getElementById('exam-title-input').value.trim();
-    var qCount    = parseInt(document.getElementById('question-count').value) || 20;
-    var types     = Array.from(document.querySelectorAll('input[name="qtype"]:checked')).map(function(c){ return c.value; });
     var bloomMode = document.querySelector('input[name="bloom-mode"]:checked')?.value || 'General';
     var bloomLevels = Array.from(document.querySelectorAll('input[name="bloom-level"]:checked')).map(function(c){ return c.value; });
 
+    // Build distribution from per-type count inputs
+    var questionDistribution = {};
+    var totalCount = 0;
+    document.querySelectorAll('input[name="qtype"]:checked').forEach(function (cb) {
+      var countInput = document.querySelector('.qtype-count[data-type="' + cb.value + '"]');
+      var n = countInput ? (parseInt(countInput.value) || 0) : 0;
+      if (n > 0) { questionDistribution[cb.value] = n; totalCount += n; }
+    });
+
     if (!subjectId)       { alert('Please select a subject.'); return; }
     if (!title)           { alert('Please enter an exam title.'); return; }
-    if (!types.length)    { alert('Please select at least one question type.'); return; }
+    if (totalCount < 1)   { alert('Please select at least one question type and set a count.'); return; }
     if (!App.referenceText) { alert('Please upload reference material first.'); return; }
 
     var subjectName = '';
@@ -254,22 +291,20 @@ document.addEventListener('DOMContentLoaded', function () {
     if (subj) subjectName = subj['Subject Name'];
 
     setButtonLoading('generate-exam-btn', true);
-    showStep3Status('Generating ' + qCount + ' questions with Gemini AI… This may take 30–60 seconds.');
+    showStep3Status('Generating ' + totalCount + ' questions with Gemini AI… This may take 30–60 seconds.');
 
     api({
       action: 'generateExam', password: App.password,
       referenceText: App.referenceText, examTitle: title,
-      subjectName, questionCount: qCount, questionTypes: types, bloomMode, bloomLevels
+      subjectName, questionDistribution, bloomMode, bloomLevels
     })
       .then(function (data) {
         if (!data.success) { showStep3Status('Error: ' + data.error); return; }
         App.parsedQuestions = normalizeQuestions(data.questions);
-        if (data.masterDocUrl) {
-          App.masterDocUrl = data.masterDocUrl;
-          showStep3Status('Generated ' + App.parsedQuestions.length + ' questions. <a href="' + data.masterDocUrl + '" target="_blank">View Master Document</a>');
-        } else {
-          showStep3Status('Generated ' + App.parsedQuestions.length + ' questions.');
-        }
+        var docMsg = data.masterDocUrl
+          ? ' <a href="' + data.masterDocUrl + '" target="_blank">📄 View Instructor Copy</a>'
+          : '';
+        showStep3Status('Generated ' + App.parsedQuestions.length + ' questions.' + docMsg);
         renderQuestionPreview(App.parsedQuestions);
       })
       .catch(function () { showStep3Status('Generation failed. Please try again.'); })
@@ -532,6 +567,12 @@ function submitExamForm(status) {
       if (!data.success) { alert('Error saving exam: ' + data.error); return; }
 
       App.currentExamId = data.examId;
+
+      // Show instructor copy link if the backend auto-created it
+      if (data.masterDocLink && !App.masterDocUrl) {
+        App.masterDocUrl = data.masterDocLink;
+        showStep3Status('Exam saved. <a href="' + data.masterDocLink + '" target="_blank">📄 View Instructor Copy (with Answer Keys)</a>');
+      }
 
       if (status === 'Active') {
         return api({ action: 'activateExam', password: App.password, examId: data.examId })
@@ -867,7 +908,9 @@ function exportGradebook(examId) {
       var blob = new Blob([data.csv], { type: 'text/csv' });
       var url  = URL.createObjectURL(blob);
       var a    = document.createElement('a');
-      a.href = url; a.download = 'gradebook_' + examId + '.csv'; a.click();
+      a.href = url;
+      a.download = data.filename || ('gradebook_' + examId + '.csv');
+      a.click();
       URL.revokeObjectURL(url);
     });
 }
