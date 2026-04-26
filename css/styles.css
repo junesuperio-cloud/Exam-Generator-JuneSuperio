@@ -478,3 +478,105 @@ textarea { resize: vertical; min-height: 80px; }
   .question-text { font-size: 0.97rem; }
   .score-percent { font-size: 1.5rem; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   UI ENHANCEMENTS — v2
+───────────────────────────────────────────────────────────── */
+
+/* Crisper page header */
+.page-header {
+  background: linear-gradient(135deg, #1a5c1a 0%, #226b22 100%);
+  padding: 1.1rem 0;
+}
+.page-header h1 { font-size: 1.5rem; letter-spacing: -0.01em; }
+
+/* Cards with left-accent border on hover */
+.card {
+  border: 1px solid #e8e8e8;
+  transition: box-shadow 0.15s;
+}
+.card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); }
+
+/* Step headings */
+.card h2 { color: #222; font-size: 1.15rem; border-bottom: 2px solid var(--clr-primary-lt); padding-bottom: 0.4rem; margin-bottom: 1rem; }
+
+/* Better gradebook table */
+.gradebook-table thead th {
+  background: #f7f8fa;
+  color: #444;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid #e0e0e0;
+}
+.gradebook-table tbody tr:nth-child(even) td { background: #fafbfc; }
+.gradebook-table tbody tr:hover td { background: #eef7ee; }
+
+/* Gradebook exam header — more polished */
+.gradebook-exam-header {
+  background: linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%);
+  border: 1px solid #dde3ea;
+  border-bottom: none;
+  font-size: 0.9rem;
+}
+
+/* Status badges — sharper */
+.status-active { background: #dcf5dc; color: #155215; border: 1px solid #b3ddb3; }
+.status-draft  { background: #e8eaf6; color: #303f9f; border: 1px solid #c5cae9; }
+.status-closed { background: #f5f5f5; color: #555; border: 1px solid #ddd; }
+
+/* Exam cards */
+.exam-card { border-left: 4px solid transparent; transition: border-color 0.15s, box-shadow 0.15s; }
+.exam-card:hover { border-left-color: var(--clr-primary); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+
+/* Alert info */
+.alert-info { background: #e8f0fe; border: 1px solid #aac4f5; color: #1a3a7c; }
+
+/* Question type allocation grid */
+.qtype-alloc-grid { display: flex; flex-direction: column; gap: 0.4rem; }
+.qtype-alloc-row  { display: flex; align-items: center; gap: 0.6rem; }
+.qtype-alloc-row .qtype-card { flex: 1; margin: 0; }
+.qtype-alloc-row .qtype-count {
+  width: 65px !important;
+  padding: 0.35rem 0.5rem;
+  text-align: center;
+  font-weight: 700;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--clr-border);
+  transition: border-color 0.15s;
+}
+.qtype-alloc-row .qtype-count:not(:disabled) { border-color: var(--clr-primary); background: var(--clr-primary-lt); }
+.qtype-alloc-row .qtype-count:disabled { opacity: 0.4; background: #f5f5f5; }
+
+/* Settings group — cleaner */
+.settings-group { border-radius: var(--radius); background: #fafafa; }
+.settings-group h3 { color: #333; }
+
+/* Tabs — slightly taller with pill indicator */
+.tab-btn { border-radius: 4px 4px 0 0; }
+.tab-btn.active { background: #f8fff8; }
+
+/* Section divider label */
+.section-label {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin: 1.25rem 0 0.75rem; color: var(--clr-text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.section-label::before, .section-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--clr-border);
+}
+
+/* Toast — slightly rounded pill */
+#toast { border-radius: 24px; font-weight: 500; }
+
+/* Parse status box */
+.parse-status { border-left: 3px solid var(--clr-secondary); background: #f0f4ff; }
+
+/* Hint — slightly more legible */
+.hint { color: #5a6a7e; }
+
+/* Gradebook student summary cards */
+#student-summary-content .card { padding: 0; overflow: hidden; }
+#student-summary-content .card h3 { padding: 1rem 1.25rem 0; }
+#student-summary-content .gradebook-table { margin: 0; }
+#student-summary-content .gradebook-table thead th:first-child { padding-left: 1.25rem; }
+#student-summary-content .gradebook-table tbody td:first-child { padding-left: 1.25rem; }
