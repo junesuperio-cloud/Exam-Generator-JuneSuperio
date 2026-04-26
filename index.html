@@ -159,37 +159,59 @@
           <!-- ── REFERENCE MODE ONLY: question generation settings ── -->
           <div id="reference-only-settings" style="display:none;">
             <div class="form-group">
-              <label class="form-label">Question Types to Generate</label>
-              <div class="qtype-cards">
-                <label class="qtype-card" title="Student picks one correct answer from 4 options.">
-                  <input type="checkbox" name="qtype" value="multiple_choice" checked> Multiple Choice
-                </label>
-                <label class="qtype-card" title="Student decides if a statement is True or False.">
-                  <input type="checkbox" name="qtype" value="true_false"> True / False
-                </label>
-                <label class="qtype-card" title="Student types an exact word or short phrase.">
-                  <input type="checkbox" name="qtype" value="identification"> Identification
-                </label>
-                <label class="qtype-card" title="Student selects ALL correct answers.">
-                  <input type="checkbox" name="qtype" value="multiple_response"> Multiple Response
-                </label>
-                <label class="qtype-card" title="Student writes a sentence or paragraph — graded manually.">
-                  <input type="checkbox" name="qtype" value="short_answer"> Short Answer
-                </label>
-                <label class="qtype-card" title="Student writes an extended response — graded manually.">
-                  <input type="checkbox" name="qtype" value="essay"> Essay
-                </label>
-                <label class="qtype-card" title="Student lists a specific number of items.">
-                  <input type="checkbox" name="qtype" value="enumeration"> Enumeration
-                </label>
-                <label class="qtype-card" title="Student matches Column A to Column B.">
-                  <input type="checkbox" name="qtype" value="matching_type"> Matching Type
-                </label>
+              <label class="form-label">Question Types &amp; Count per Type</label>
+              <p class="hint">Check each type you want and set how many questions to generate for it.</p>
+              <div class="qtype-alloc-grid" id="qtype-alloc-grid">
+                <div class="qtype-alloc-row">
+                  <label class="qtype-card" title="Student picks one correct answer from 4 options.">
+                    <input type="checkbox" name="qtype" value="multiple_choice" checked> Multiple Choice
+                  </label>
+                  <input type="number" class="qtype-count" data-type="multiple_choice" min="1" value="15" style="width:65px;">
+                </div>
+                <div class="qtype-alloc-row">
+                  <label class="qtype-card" title="Student decides if a statement is True or False.">
+                    <input type="checkbox" name="qtype" value="true_false"> True / False
+                  </label>
+                  <input type="number" class="qtype-count" data-type="true_false" min="1" value="5" disabled style="width:65px;">
+                </div>
+                <div class="qtype-alloc-row">
+                  <label class="qtype-card" title="Student types an exact word or short phrase.">
+                    <input type="checkbox" name="qtype" value="identification"> Identification
+                  </label>
+                  <input type="number" class="qtype-count" data-type="identification" min="1" value="5" disabled style="width:65px;">
+                </div>
+                <div class="qtype-alloc-row">
+                  <label class="qtype-card" title="Student selects ALL correct answers.">
+                    <input type="checkbox" name="qtype" value="multiple_response"> Multiple Response
+                  </label>
+                  <input type="number" class="qtype-count" data-type="multiple_response" min="1" value="5" disabled style="width:65px;">
+                </div>
+                <div class="qtype-alloc-row">
+                  <label class="qtype-card" title="Student writes a sentence or paragraph — graded manually.">
+                    <input type="checkbox" name="qtype" value="short_answer"> Short Answer
+                  </label>
+                  <input type="number" class="qtype-count" data-type="short_answer" min="1" value="5" disabled style="width:65px;">
+                </div>
+                <div class="qtype-alloc-row">
+                  <label class="qtype-card" title="Student writes an extended response — graded manually.">
+                    <input type="checkbox" name="qtype" value="essay"> Essay
+                  </label>
+                  <input type="number" class="qtype-count" data-type="essay" min="1" value="5" disabled style="width:65px;">
+                </div>
+                <div class="qtype-alloc-row">
+                  <label class="qtype-card" title="Student lists a specific number of items.">
+                    <input type="checkbox" name="qtype" value="enumeration"> Enumeration
+                  </label>
+                  <input type="number" class="qtype-count" data-type="enumeration" min="1" value="5" disabled style="width:65px;">
+                </div>
+                <div class="qtype-alloc-row">
+                  <label class="qtype-card" title="Student matches Column A to Column B.">
+                    <input type="checkbox" name="qtype" value="matching_type"> Matching Type
+                  </label>
+                  <input type="number" class="qtype-count" data-type="matching_type" min="1" value="5" disabled style="width:65px;">
+                </div>
               </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="question-count">Number of Questions to Generate</label>
-              <input type="number" id="question-count" min="1" max="100" value="20" style="max-width:100px;">
+              <p class="hint" style="margin-top:0.5rem;">Total: <strong id="qtype-total-display">15</strong> questions</p>
             </div>
             <div class="form-group">
               <label class="form-label">Bloom's Taxonomy</label>
@@ -401,15 +423,13 @@
           </div>
 
           <div class="settings-group">
-            <h3>🌐 Custom Domain (Security)</h3>
-            <p>By default, the exam link exposes your GitHub repository name (e.g. <code>username.github.io/repo-name/exam.html</code>). To hide this:</p>
-            <ol style="margin:0.5rem 0 0.5rem 1.25rem;line-height:1.8;">
-              <li>Buy or use a free domain (e.g. via <a href="https://pages.github.com/" target="_blank">GitHub Pages custom domain</a>).</li>
-              <li>In your GitHub repo, go to <strong>Settings → Pages → Custom domain</strong> and enter your domain.</li>
-              <li>Add a <code>CNAME</code> file to your repo root containing just your domain name.</li>
-              <li>Update <code>GITHUB_PAGES_URL</code> in your Apps Script Script Properties to your new domain.</li>
-            </ol>
-            <p class="hint">Exam and score pages already include <code>noindex</code> tags to prevent search engines from indexing them.</p>
+            <h3>🌐 Domain Configuration</h3>
+            <p>Your exam portal is served from a custom domain. Student exam links are built using the <code>GITHUB_PAGES_URL</code> Script Property.</p>
+            <table style="width:100%;border-collapse:collapse;font-size:0.875rem;margin:0.5rem 0;">
+              <tr><td style="padding:6px;font-weight:bold;width:45%;border:1px solid #ddd;">Script Property</td><td style="padding:6px;border:1px solid #ddd;font-family:monospace;">GITHUB_PAGES_URL</td></tr>
+              <tr><td style="padding:6px;font-weight:bold;border:1px solid #ddd;">Current value should be</td><td style="padding:6px;border:1px solid #ddd;font-family:monospace;">https://june.exam.generate.js.org</td></tr>
+            </table>
+            <p class="hint" style="margin-top:0.5rem;">To update: open your Apps Script editor → Project Settings → Script Properties → set <code>GITHUB_PAGES_URL</code> to <code>https://june.exam.generate.js.org</code>. Exam and score pages include <code>noindex</code> tags so they are not indexed by search engines.</p>
           </div>
 
           <div class="settings-group">
