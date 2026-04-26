@@ -5,22 +5,22 @@
 ───────────────────────────────────────────────────────────── */
 :root {
   --clr-primary:    #1a6b1a;
-  --clr-primary-lt: #e8f5e9;
-  --clr-secondary:  #1e3a5f;
+  --clr-primary-lt: #eef7ee;
+  --clr-secondary:  #5c3d11;
   --clr-accent:     #c9a227;
   --clr-danger:     #c0392b;
   --clr-danger-lt:  #fdecea;
   --clr-warning:    #b8860b;
-  --clr-warning-lt: #fff9e6;
+  --clr-warning-lt: #fdf6e3;
   --clr-success:    #1a6b1a;
-  --clr-text:       #1a1a1a;
-  --clr-text-muted: #5a6a7e;
-  --clr-border:     #d0d7e2;
-  --clr-bg:         #edf0f5;
-  --clr-card:       #ffffff;
+  --clr-text:       #2c1a0e;
+  --clr-text-muted: #7a5c3a;
+  --clr-border:     #d9c9a8;
+  --clr-bg:         #f4efe6;
+  --clr-card:       #fdf9f3;
   --radius:         10px;
-  --shadow:         0 2px 10px rgba(30,58,95,0.10);
-  --shadow-md:      0 4px 20px rgba(30,58,95,0.15);
+  --shadow:         0 2px 10px rgba(92,61,17,0.10);
+  --shadow-md:      0 4px 20px rgba(92,61,17,0.15);
   --font:           'Segoe UI', system-ui, -apple-system, sans-serif;
   --max-w:          1100px;
 }
@@ -33,13 +33,13 @@ html { font-size: 16px; scroll-behavior: smooth; }
 body {
   font-family: var(--font);
   color: var(--clr-text);
-  /* Institutional diagonal grid pattern */
-  background-color: #e8edf4;
+  /* Warm parchment diagonal grid */
+  background-color: #ede4d4;
   background-image:
-    linear-gradient(135deg, rgba(30,58,95,0.04) 25%, transparent 25%),
-    linear-gradient(225deg, rgba(30,58,95,0.04) 25%, transparent 25%),
-    linear-gradient(315deg, rgba(30,58,95,0.04) 25%, transparent 25%),
-    linear-gradient(45deg,  rgba(30,58,95,0.04) 25%, transparent 25%);
+    linear-gradient(135deg, rgba(92,61,17,0.05) 25%, transparent 25%),
+    linear-gradient(225deg, rgba(92,61,17,0.05) 25%, transparent 25%),
+    linear-gradient(315deg, rgba(92,61,17,0.05) 25%, transparent 25%),
+    linear-gradient(45deg,  rgba(92,61,17,0.05) 25%, transparent 25%);
   background-size: 28px 28px;
   line-height: 1.6;
   min-height: 100vh;
@@ -54,10 +54,10 @@ img { max-width: 100%; }
 ───────────────────────────────────────────────────────────── */
 .container { max-width: var(--max-w); margin: 0 auto; padding: 0 1rem; }
 .page-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2a5298 55%, #1a6b1a 100%);
+  background: linear-gradient(135deg, #3d2209 0%, #5c3d11 50%, #1a6b1a 100%);
   color: #fff;
   padding: 1.1rem 0;
-  box-shadow: 0 3px 12px rgba(30,58,95,0.35);
+  box-shadow: 0 3px 12px rgba(92,61,17,0.40);
   position: relative;
   overflow: hidden;
 }
@@ -94,7 +94,7 @@ img { max-width: 100%; }
   background: var(--clr-card);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  border: 1px solid rgba(30,58,95,0.08);
+  border: 1px solid rgba(92,61,17,0.10);
   padding: 1.25rem;
   margin-bottom: 1rem;
   transition: box-shadow 0.2s;
@@ -136,7 +136,7 @@ input[type="url"], textarea, select {
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--clr-secondary);
-  box-shadow: 0 0 0 3px rgba(44,95,138,0.15);
+  box-shadow: 0 0 0 3px rgba(92,61,17,0.15);
 }
 textarea { resize: vertical; min-height: 80px; }
 .form-group { margin-bottom: 1rem; }
@@ -191,17 +191,17 @@ textarea { resize: vertical; min-height: 80px; }
 ───────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(20,40,70,0.65);
+  background: rgba(44,26,14,0.65);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(3px);
 }
 .modal-box {
-  background: #fff;
+  background: #fdf9f3;
   border-radius: 14px;
   padding: 2.25rem;
   width: 100%; max-width: 420px;
-  box-shadow: 0 16px 48px rgba(30,58,95,0.3);
+  box-shadow: 0 16px 48px rgba(92,61,17,0.30);
   border-top: 4px solid var(--clr-primary);
 }
 .modal-box h2 { margin-bottom: 1.25rem; text-align: center; }
@@ -301,7 +301,7 @@ textarea { resize: vertical; min-height: 80px; }
 ───────────────────────────────────────────────────────────── */
 .exam-card {
   background: var(--clr-card);
-  border: 1px solid rgba(30,58,95,0.12);
+  border: 1px solid rgba(92,61,17,0.12);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
   margin-bottom: 0.75rem;
@@ -530,9 +530,9 @@ textarea { resize: vertical; min-height: 80px; }
    UI ENHANCEMENTS — v2
 ───────────────────────────────────────────────────────────── */
 
-/* Crisper page header */
+/* Page header — warm library */
 .page-header {
-  background: linear-gradient(135deg, #1a5c1a 0%, #226b22 100%);
+  background: linear-gradient(135deg, #3d2209 0%, #5c3d11 50%, #1a6b1a 100%);
   padding: 1.1rem 0;
 }
 .page-header h1 { font-size: 1.5rem; letter-spacing: -0.01em; }
@@ -545,24 +545,24 @@ textarea { resize: vertical; min-height: 80px; }
 .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); }
 
 /* Step headings */
-.card h2 { color: #222; font-size: 1.15rem; border-bottom: 2px solid var(--clr-primary-lt); padding-bottom: 0.4rem; margin-bottom: 1rem; }
+.card h2 { color: #2c1a0e; font-size: 1.15rem; border-bottom: 2px solid var(--clr-primary-lt); padding-bottom: 0.4rem; margin-bottom: 1rem; }
 
 /* Better gradebook table */
 .gradebook-table thead th {
-  background: #f7f8fa;
-  color: #444;
+  background: #f0e8d8;
+  color: #5c3d11;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid #d9c9a8;
 }
-.gradebook-table tbody tr:nth-child(even) td { background: #fafbfc; }
+.gradebook-table tbody tr:nth-child(even) td { background: #faf5ec; }
 .gradebook-table tbody tr:hover td { background: #eef7ee; }
 
-/* Gradebook exam header — more polished */
+/* Gradebook exam header — warm */
 .gradebook-exam-header {
-  background: linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%);
-  border: 1px solid #dde3ea;
+  background: linear-gradient(135deg, #f5ede0 0%, #ede0cc 100%);
+  border: 1px solid #d9c9a8;
   border-bottom: none;
   font-size: 0.9rem;
 }
@@ -577,7 +577,7 @@ textarea { resize: vertical; min-height: 80px; }
 .exam-card:hover { border-left-color: var(--clr-primary); box-shadow: var(--shadow-md); }
 
 /* Alert info */
-.alert-info { background: #e8f0fe; border: 1px solid #aac4f5; color: #1a3a7c; }
+.alert-info { background: #fdf6e3; border: 1px solid #d9c9a8; color: #5c3d11; }
 
 /* Question type allocation grid */
 .qtype-alloc-grid { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -595,11 +595,11 @@ textarea { resize: vertical; min-height: 80px; }
 .qtype-alloc-row .qtype-count:not(:disabled) { border-color: var(--clr-primary); background: var(--clr-primary-lt); }
 .qtype-alloc-row .qtype-count:disabled { opacity: 0.4; background: #f5f5f5; }
 
-/* Settings group — institutional */
+/* Settings group — warm */
 .settings-group {
   border-radius: var(--radius);
-  background: #f7f9fc;
-  border: 1px solid rgba(30,58,95,0.08);
+  background: #faf5ec;
+  border: 1px solid rgba(92,61,17,0.10);
   padding: 1rem 1.25rem;
   margin-bottom: 1rem;
 }
@@ -618,7 +618,7 @@ textarea { resize: vertical; min-height: 80px; }
 #toast { border-radius: 24px; font-weight: 500; }
 
 /* Parse status box */
-.parse-status { border-left: 3px solid var(--clr-secondary); background: #f0f4ff; }
+.parse-status { border-left: 3px solid var(--clr-secondary); background: #fdf6e3; }
 
 /* Hint — slightly more legible */
 .hint { color: #5a6a7e; }

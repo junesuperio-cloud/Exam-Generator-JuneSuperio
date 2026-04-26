@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (subj) subjectName = subj['Subject Name'];
 
     setButtonLoading('generate-exam-btn', true);
-    showStep3Status('Generating ' + totalCount + ' questions with Gemini AI… This may take 30–60 seconds.');
+    showGenerationLoadingModal(true);
 
     api({
       action: 'generateExam', password: App.password,
@@ -299,6 +299,7 @@ document.addEventListener('DOMContentLoaded', function () {
       subjectName, questionDistribution, bloomMode, bloomLevels
     })
       .then(function (data) {
+        showGenerationLoadingModal(false);
         if (!data.success) { showStep3Status('Error: ' + data.error); return; }
         App.parsedQuestions = normalizeQuestions(data.questions);
         var docMsg = data.masterDocUrl
@@ -306,8 +307,9 @@ document.addEventListener('DOMContentLoaded', function () {
           : '';
         showStep3Status('Generated ' + App.parsedQuestions.length + ' questions.' + docMsg);
         renderQuestionPreview(App.parsedQuestions);
+        showGenerationSuccessModal(App.parsedQuestions.length, data.masterDocUrl);
       })
-      .catch(function () { showStep3Status('Generation failed. Please try again.'); })
+      .catch(function () { showGenerationLoadingModal(false); showStep3Status('Generation failed. Please try again.'); })
       .finally(function () { setButtonLoading('generate-exam-btn', false); });
   });
 });
@@ -430,18 +432,20 @@ function applyRemodel() {
   if (sum > total) { alert('Total (' + sum + ') exceeds uploaded count (' + total + '). Please reduce.'); return; }
 
   setButtonLoading('apply-remodel-btn', true);
-  showStep3Status('Remodeling ' + sum + ' questions with Gemini AI… This may take 30–60 seconds.');
+  showGenerationLoadingModal(true);
 
   api({ action: 'remodelQuestions', password: App.password,
         questions: App.parsedQuestions, distribution: distribution })
     .then(function (data) {
+      showGenerationLoadingModal(false);
       if (!data.success) { showStep3Status('Error: ' + data.error); return; }
       App.parsedQuestions = normalizeQuestions(data.questions);
       showStep3Status('Remodeled to ' + App.parsedQuestions.length + ' questions. Review below.');
       document.getElementById('questionnaire-decision').style.display = 'none';
       renderQuestionPreview(App.parsedQuestions);
+      showGenerationSuccessModal(App.parsedQuestions.length, null);
     })
-    .catch(function () { showStep3Status('Remodel failed. Please try again.'); })
+    .catch(function () { showGenerationLoadingModal(false); showStep3Status('Remodel failed. Please try again.'); })
     .finally(function () { setButtonLoading('apply-remodel-btn', false); });
 }
 
@@ -489,7 +493,8 @@ function buildQuestionCard(q, idx) {
     ].join('') : '',
     '<div class="q-preview-answer">',
     '  <label class="form-label">Answer Key</label>',
-    '  <input class="q-answer-edit" data-field="answerKey" value="' + escHtml(JSON.stringify(q.answerKey)) + '">',
+    '  <div class="answer-key-display" style="font-weight:600;color:#1a6b1a;margin-bottom:0.3rem;font-size:0.9rem;">✓ ' + escHtml(formatAnswerKeyDisplay(q.answerKey, q.options)) + '</div>',
+    '  <input class="q-answer-edit" data-field="answerKey" value="' + escHtml(JSON.stringify(q.answerKey)) + '" style="font-size:0.8rem;color:#666;">',
     '</div>',
   ].join('');
 
@@ -578,8 +583,8 @@ function submitExamForm(status) {
         return api({ action: 'activateExam', password: App.password, examId: data.examId })
           .then(function (actData) {
             if (!actData.success) { alert('Exam saved but could not activate: ' + actData.error); return; }
-            showToast('Exam activated! Link: ' + actData.examLink);
             showExamLinkBanner(actData.examLink);
+            showSaveActivateModal(actData.examLink);
           });
       } else {
         showToast('Exam saved as draft!');
@@ -869,10 +874,13 @@ function showAnswerModal(student) {
   (student.answers || []).forEach(function (a, idx) {
     var item = document.createElement('div');
     item.className = 'answer-item' + (a.pointsEarned === a.totalPoints ? ' correct' : ' incorrect');
+    // Format submitted and correct answers with full text where available
+    var submittedDisplay = formatSubmittedDisplay(a.submitted, a.options || []);
+    var correctDisplay   = formatAnswerKeyDisplay(a.answerKey, a.options || []);
     item.innerHTML = [
       '<div class="answer-q-text"><strong>Q' + (idx+1) + ':</strong> ' + escHtml(a.questionText) + '</div>',
-      '<div>Student answered: <em>' + escHtml(JSON.stringify(a.submitted)) + '</em></div>',
-      a.needsGrading ? '' : '<div>Correct answer: <em>' + escHtml(JSON.stringify(a.answerKey)) + '</em></div>',
+      '<div>Student answered: <em>' + escHtml(submittedDisplay) + '</em></div>',
+      a.needsGrading ? '' : '<div>Correct answer: <em>' + escHtml(correctDisplay) + '</em></div>',
       '<div>Points: ' + a.pointsEarned + ' / ' + a.totalPoints + '</div>',
       a.needsGrading ? [
         '<div class="manual-grade">',
@@ -1013,6 +1021,105 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// MODAL HELPERS
+// ─────────────────────────────────────────────────────────────
+
+function showGenerationLoadingModal(show) {
+  var el = document.getElementById('generation-loading-modal');
+  if (el) el.classList.toggle('hidden', !show);
+}
+
+function showGenerationSuccessModal(count, masterDocUrl) {
+  var modal = document.getElementById('generation-success-modal');
+  if (!modal) return;
+  var detail = document.getElementById('generation-success-detail');
+  var msg = count + ' question' + (count !== 1 ? 's' : '') + ' generated successfully.';
+  if (masterDocUrl) {
+    msg += ' <a href="' + masterDocUrl + '" target="_blank" style="color:var(--clr-primary);">📄 View Instructor Copy</a>';
+  }
+  msg += ' You may now review and edit, then save your exam.';
+  if (detail) detail.innerHTML = msg;
+  modal.classList.remove('hidden');
+  document.getElementById('generation-success-continue-btn').onclick = function () {
+    modal.classList.add('hidden');
+    var preview = document.getElementById('preview-section');
+    if (preview) preview.scrollIntoView({ behavior: 'smooth' });
+  };
+}
+
+function showSaveActivateModal(examLink) {
+  var modal = document.getElementById('save-activate-modal');
+  if (!modal) return;
+  var inp = document.getElementById('save-activate-link-display');
+  if (inp) inp.value = examLink || '';
+  modal.classList.remove('hidden');
+  document.getElementById('save-activate-copy-btn').onclick = function () {
+    navigator.clipboard.writeText(examLink || '').then(function () { showToast('Link copied!'); });
+  };
+  document.getElementById('save-activate-ok-btn').onclick = function () {
+    modal.classList.add('hidden');
+    loadExamsTab();
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// ANSWER KEY FORMATTING
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Format an answer key for readable display.
+ * MC: "C" + options → "C - Parolee"
+ * Array: ["A","C"] + options → "A - foo, C - baz"
+ * Other: return as string
+ */
+function formatAnswerKeyDisplay(answerKey, options) {
+  var opts = options || [];
+  // Helper: letter → option text
+  function letterToText(letter) {
+    var idx = 'ABCDE'.indexOf(String(letter).trim().toUpperCase());
+    if (idx < 0 || !opts[idx]) return String(letter).toUpperCase();
+    var clean = String(opts[idx]).replace(/^[A-Ea-e][\s.)\-]+\s*/, '').trim();
+    return String(letter).toUpperCase() + ' - ' + clean;
+  }
+  if (Array.isArray(answerKey)) {
+    return answerKey.map(function(l){ return letterToText(l); }).join(', ');
+  }
+  if (typeof answerKey === 'object' && answerKey !== null) {
+    return Object.keys(answerKey).map(function(k){ return k + ' → ' + answerKey[k]; }).join('; ');
+  }
+  var key = String(answerKey || '').trim();
+  // Single letter with options available
+  if (/^[A-Ea-e]$/.test(key) && opts.length) return letterToText(key);
+  return key || '—';
+}
+
+/**
+ * Format a submitted answer for display.
+ * Handles full option text (e.g. "C. Parolee") → "C - Parolee",
+ * plain letter → "C", array of options → each formatted.
+ */
+function formatSubmittedDisplay(submitted, options) {
+  var opts = options || [];
+  if (submitted === null || submitted === undefined) return '—';
+  if (Array.isArray(submitted)) {
+    return submitted.map(function(v){ return formatSubmittedDisplay(v, opts); }).join(', ');
+  }
+  var s = String(submitted).trim();
+  // Has letter prefix like "C. Parolee" or "c) Parolee"
+  var prefixMatch = s.match(/^([A-Ea-e])[\s.)\-]+(.+)$/);
+  if (prefixMatch) return prefixMatch[1].toUpperCase() + ' - ' + prefixMatch[2].trim();
+  // Plain letter
+  if (/^[A-Ea-e]$/.test(s) && opts.length) {
+    var idx = 'ABCDE'.indexOf(s.toUpperCase());
+    if (idx >= 0 && opts[idx]) {
+      var clean = String(opts[idx]).replace(/^[A-Ea-e][\s.)\-]+\s*/, '').trim();
+      return s.toUpperCase() + ' - ' + clean;
+    }
+  }
+  return s || '—';
+}
 
 // ─────────────────────────────────────────────────────────────
 // HELPERS

@@ -444,17 +444,24 @@ function renderInputForType(q) {
 
   switch (q.type) {
     case 'multiple_choice':
-      q.options.forEach(function (opt) {
-        var label  = document.createElement('label');
+      // Always display options in sequential a/b/c/d order.
+      // Options may be shuffled (content reordered) — strip any original letter prefix
+      // and relabel sequentially so display is always a. b. c. d.
+      // The raw option text is saved as the answer value (preserves original letter for scoring).
+      var seqLetters = ['a', 'b', 'c', 'd', 'e'];
+      q.options.forEach(function (opt, oi) {
+        var label = document.createElement('label');
         label.className = 'option-label';
-        var radio  = document.createElement('input');
+        var radio = document.createElement('input');
         radio.type  = 'radio';
         radio.name  = 'q_' + q.questionId;
-        radio.value = opt;
+        radio.value = opt; // keep original value so scoring logic still works
         radio.addEventListener('change', function () { saveAnswer(q.questionId, opt); });
         if (saved === opt) radio.checked = true;
+        // Strip existing letter prefix (e.g. "C. " or "c) ") and relabel sequentially
+        var displayText = String(opt).replace(/^[A-Ea-e][\s.)\-]+\s*/, '').trim();
         label.appendChild(radio);
-        label.appendChild(document.createTextNode(' ' + opt));
+        label.appendChild(document.createTextNode(' ' + (seqLetters[oi] || (oi + 1)) + '. ' + displayText));
         wrapper.appendChild(label);
       });
       break;
@@ -491,7 +498,8 @@ function renderInputForType(q) {
       hint.textContent = 'Select all correct answers.';
       wrapper.appendChild(hint);
       var savedArr = Array.isArray(saved) ? saved : [];
-      q.options.forEach(function (opt) {
+      var seqLettersMR = ['a', 'b', 'c', 'd', 'e', 'f'];
+      q.options.forEach(function (opt, oi) {
         var label = document.createElement('label');
         label.className = 'option-label';
         var cb    = document.createElement('input');
@@ -502,8 +510,9 @@ function renderInputForType(q) {
           var checks = Array.from(wrapper.querySelectorAll('input[type=checkbox]:checked')).map(function(c){ return c.value; });
           saveAnswer(q.questionId, checks);
         });
+        var displayText = String(opt).replace(/^[A-Fa-f][\s.)\-]+\s*/, '').trim();
         label.appendChild(cb);
-        label.appendChild(document.createTextNode(' ' + opt));
+        label.appendChild(document.createTextNode(' ' + (seqLettersMR[oi] || (oi + 1)) + '. ' + displayText));
         wrapper.appendChild(label);
       });
       break;
