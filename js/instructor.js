@@ -642,9 +642,13 @@ function renderExamCards(exams) {
   exams.forEach(function (exam) {
     var card = document.createElement('div');
     card.className = 'exam-card';
+    // Build SubjectCode-ExamTitle label for display (find subject code from loaded subjects)
+    var subjectObj = App.subjects.find(function(s){ return s['Subject ID'] === exam['Subject ID']; });
+    var subjectLabel = subjectObj ? subjectObj['Subject Code'] + ' — ' + escHtml(exam['Exam Title']) : escHtml(exam['Exam Title']);
+
     card.innerHTML = [
       '<div class="exam-card-header">',
-      '  <span class="exam-card-title">' + escHtml(exam['Exam Title']) + '</span>',
+      '  <span class="exam-card-title">' + subjectLabel + '</span>',
       '  <span class="status-badge status-' + exam['Status'].toLowerCase() + '">' + exam['Status'] + '</span>',
       '</div>',
       '<div class="exam-card-meta">',
