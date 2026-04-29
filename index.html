@@ -118,11 +118,11 @@
           <h2>Step 4 — Upload File</h2>
           <div id="file-dropzone" class="dropzone">
             <span class="dropzone-icon">📂</span>
-            <p><strong>Drag &amp; drop a file here</strong> or click to browse</p>
-            <p style="font-size:0.8rem;margin-top:0.3rem;">Supports: PDF, DOCX, DOC, PPTX, PPT</p>
-            <input type="file" id="file-input" accept=".pdf,.docx,.doc,.pptx,.ppt" style="display:none">
+            <p><strong>Drag &amp; drop files here</strong> or click to browse</p>
+            <p style="font-size:0.8rem;margin-top:0.3rem;">Supports multiple files: PDF, DOCX, DOC, PPTX, PPT</p>
+            <input type="file" id="file-input" accept=".pdf,.docx,.doc,.pptx,.ppt" style="display:none" multiple>
           </div>
-          <p id="file-name-display" class="hidden" style="margin-top:0.5rem;font-weight:600;"></p>
+          <div id="file-list-display" class="hidden" style="margin-top:0.6rem;display:flex;flex-direction:column;gap:0.25rem;"></div>
 
           <p style="margin:0.75rem 0;text-align:center;color:#999;">— or paste a Google Docs / Slides URL —</p>
 
@@ -348,7 +348,7 @@
           <div id="question-preview-list"></div>
 
           <!-- STEP 7: SAVE -->
-          <div class="card" id="exam-link-banner" style="display:none;">
+          <div class="card hidden" id="exam-link-banner">
             <h3>🔗 Exam Activated!</h3>
             <div class="exam-link-row">
               <input type="text" id="exam-link-display" readonly>

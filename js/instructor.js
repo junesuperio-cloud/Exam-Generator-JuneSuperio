@@ -162,33 +162,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
   dropzone.addEventListener('dragover',  function(e){ e.preventDefault(); dropzone.classList.add('drag-over'); });
   dropzone.addEventListener('dragleave', function(){  dropzone.classList.remove('drag-over'); });
-  dropzone.addEventListener('drop',      function(e){ e.preventDefault(); dropzone.classList.remove('drag-over'); handleFileUpload(e.dataTransfer.files[0]); });
+  dropzone.addEventListener('drop',      function(e){ e.preventDefault(); dropzone.classList.remove('drag-over'); handleFileUpload(e.dataTransfer.files); });
   dropzone.addEventListener('click',     function(){  document.getElementById('file-input').click(); });
 
-  document.getElementById('file-input').addEventListener('change', function(e){ handleFileUpload(e.target.files[0]); });
+  document.getElementById('file-input').addEventListener('change', function(e){ handleFileUpload(e.target.files); });
 
   document.getElementById('parse-file-btn').addEventListener('click', function () {
-    var mode = document.querySelector('input[name="upload-mode"]:checked').value;
-    var file = App.selectedFile;
-    var url  = document.getElementById('google-url-input').value.trim();
+    var mode  = document.querySelector('input[name="upload-mode"]:checked').value;
+    var files = App.selectedFiles || [];
+    var url   = document.getElementById('google-url-input').value.trim();
 
-    if (!file && !url) { alert('Please upload a file or paste a Google Docs/Slides URL.'); return; }
+    if (!files.length && !url) { alert('Please upload a file or paste a Google Docs/Slides URL.'); return; }
 
-    if (file) {
-      readFileAsBase64(file, function (base64, mimeType) {
-        doParseFile({ mode, fileData: base64, mimeType });
-      });
+    if (files.length) {
+      parseFilesSequential(files, mode, 0, [], '');
     } else {
       doParseFile({ mode, url });
     }
   });
 });
 
-function handleFileUpload(file) {
-  if (!file) return;
-  App.selectedFile = file;
-  document.getElementById('file-name-display').textContent = file.name + ' (' + formatFileSize(file.size) + ')';
-  document.getElementById('file-name-display').classList.remove('hidden');
+function handleFileUpload(files) {
+  if (!files || !files.length) return;
+  App.selectedFiles = Array.from(files);
+
+  var listEl = document.getElementById('file-list-display');
+  listEl.innerHTML = App.selectedFiles.map(function(f) {
+    return '<div style="font-size:0.87rem;font-weight:600;color:var(--clr-secondary);">📄 ' + escHtml(f.name) + ' <span style="font-weight:400;color:var(--clr-text-muted);">(' + formatFileSize(f.size) + ')</span></div>';
+  }).join('');
+  listEl.classList.remove('hidden');
 }
 
 function readFileAsBase64(file, callback) {
@@ -200,33 +202,108 @@ function readFileAsBase64(file, callback) {
   reader.readAsDataURL(file);
 }
 
+// Used for Google Docs/Slides URL parsing only
 function doParseFile(params) {
   setButtonLoading('parse-file-btn', true);
-  showStep3Status('Parsing file with Gemini AI…');
+  showStep3Status('Loading URL with Gemini AI…');
 
   api(Object.assign({ action: 'uploadAndParseFile', password: App.password }, params))
     .then(function (data) {
       if (!data.success) { showStep3Status('Error: ' + data.error); return; }
-
-      if (data.mode === 'questionnaire') {
-        App.parsedQuestions = normalizeQuestions(data.questions);
-        App.referenceText   = '';
-        showStep3Status('Found ' + App.parsedQuestions.length + ' questions. Scroll down to configure and save.');
-        document.getElementById('step5-section').style.display = '';
-        document.getElementById('reference-only-settings').style.display = 'none';
-        showQuestionnaireDecision(App.parsedQuestions);
-        renderQuestionPreview(App.parsedQuestions);
-      } else {
-        App.referenceText   = data.text || '';
-        App.parsedQuestions = [];
-        showStep3Status('Reference material loaded (' + App.referenceText.length + ' characters). Configure settings and click Generate.');
-        document.getElementById('step5-section').style.display = '';
-        document.getElementById('questionnaire-decision').style.display = 'none';
-        document.getElementById('reference-only-settings').style.display = '';
-      }
+      applyParsedResult(data, 1, 1);
     })
     .catch(function () { showStep3Status('Connection error. Please try again.'); })
     .finally(function () { setButtonLoading('parse-file-btn', false); });
+}
+
+// Sequential multi-file parser — uploads files one by one and merges results
+function parseFilesSequential(files, mode, index, combinedQuestions, combinedText) {
+  if (index >= files.length) {
+    setButtonLoading('parse-file-btn', false);
+    var totalFiles = files.length;
+
+    if (mode === 'questionnaire') {
+      if (!combinedQuestions.length) { showStep3Status('No questions found in the uploaded file(s).'); return; }
+      App.parsedQuestions = normalizeQuestions(combinedQuestions);
+      App.referenceText   = '';
+      showStep3Status(
+        totalFiles > 1
+          ? '✅ Parsed ' + totalFiles + ' files — ' + App.parsedQuestions.length + ' questions combined. Scroll down to configure and save.'
+          : '✅ Found ' + App.parsedQuestions.length + ' questions. Scroll down to configure and save.'
+      );
+      document.getElementById('step5-section').style.display = '';
+      document.getElementById('reference-only-settings').style.display = 'none';
+      showQuestionnaireDecision(App.parsedQuestions);
+      renderQuestionPreview(App.parsedQuestions);
+    } else {
+      App.referenceText   = combinedText;
+      App.parsedQuestions = [];
+      showStep3Status(
+        totalFiles > 1
+          ? '✅ Loaded ' + totalFiles + ' files (' + combinedText.length + ' characters total). Configure settings and click Generate.'
+          : '✅ Reference material loaded (' + combinedText.length + ' characters). Configure settings and click Generate.'
+      );
+      document.getElementById('step5-section').style.display = '';
+      document.getElementById('questionnaire-decision').style.display = 'none';
+      document.getElementById('reference-only-settings').style.display = '';
+    }
+    return;
+  }
+
+  var file  = files[index];
+  var total = files.length;
+  showStep3Status(
+    total > 1
+      ? 'Parsing file ' + (index + 1) + ' of ' + total + ': ' + escHtml(file.name) + '…'
+      : 'Parsing file with Gemini AI…'
+  );
+
+  setButtonLoading('parse-file-btn', true);
+  readFileAsBase64(file, function(base64, mimeType) {
+    api({ action: 'uploadAndParseFile', password: App.password, mode: mode, fileData: base64, mimeType: mimeType })
+      .then(function(data) {
+        if (!data.success) {
+          showStep3Status('❌ Error on ' + escHtml(file.name) + ': ' + (data.error || 'Unknown error'));
+          setButtonLoading('parse-file-btn', false);
+          return;
+        }
+        var newQuestions = combinedQuestions;
+        var newText      = combinedText;
+        if (mode === 'questionnaire' && data.questions && data.questions.length) {
+          newQuestions = combinedQuestions.concat(data.questions);
+        } else if (mode === 'reference' && data.text) {
+          newText = combinedText + (combinedText ? '\n\n--- ' + file.name + ' ---\n\n' : '') + data.text;
+        }
+        if (data.warning) {
+          showStep3Status('⚠️ ' + escHtml(file.name) + ': ' + data.warning);
+        }
+        parseFilesSequential(files, mode, index + 1, newQuestions, newText);
+      })
+      .catch(function() {
+        showStep3Status('❌ Connection error on ' + escHtml(file.name) + '. Please try again.');
+        setButtonLoading('parse-file-btn', false);
+      });
+  });
+}
+
+// Shared handler for URL parse result (kept for compatibility)
+function applyParsedResult(data, fileIndex, totalFiles) {
+  if (data.mode === 'questionnaire') {
+    App.parsedQuestions = normalizeQuestions(data.questions);
+    App.referenceText   = '';
+    showStep3Status('✅ Found ' + App.parsedQuestions.length + ' questions. Scroll down to configure and save.');
+    document.getElementById('step5-section').style.display = '';
+    document.getElementById('reference-only-settings').style.display = 'none';
+    showQuestionnaireDecision(App.parsedQuestions);
+    renderQuestionPreview(App.parsedQuestions);
+  } else {
+    App.referenceText   = data.text || '';
+    App.parsedQuestions = [];
+    showStep3Status('✅ Reference material loaded (' + App.referenceText.length + ' characters). Configure settings and click Generate.');
+    document.getElementById('step5-section').style.display = '';
+    document.getElementById('questionnaire-decision').style.display = 'none';
+    document.getElementById('reference-only-settings').style.display = '';
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
