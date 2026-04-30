@@ -55,7 +55,11 @@ function checkWindow() {
   api({ action: 'checkExamWindow', examId: ExamState.examId })
     .then(function (data) {
       if (!data.success) {
-        showError(data.message || 'This exam is not available.');
+        if (data.status === 'Closed') {
+          showClosedExamMessage();
+        } else {
+          showError(data.message || 'This exam is not available.');
+        }
         return;
       }
       ExamState.antiCheat = data.antiCheat || {};
@@ -64,6 +68,16 @@ function checkWindow() {
     .catch(function () {
       showError('Could not connect to the server. Please check your internet connection and try again.');
     });
+}
+
+function showClosedExamMessage() {
+  hide('entry-section');
+  hide('exam-section');
+  hide('status-section');
+  var scoreUrl = window.SCORE_PAGE_URL || 'score.html';
+  var err = document.getElementById('error-section');
+  err.innerHTML = 'This exam has closed. <a href="' + scoreUrl + '" style="color:inherit;font-weight:600;text-decoration:underline;">Click here to check your score →</a>';
+  err.classList.remove('hidden');
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -655,6 +669,7 @@ function startWholeTimer() {
     updateWholeTimerDisplay();
     if (ExamState.wholeTimerSecondsLeft <= 0) {
       stopAllTimers();
+      ExamState.violationFlag = 'TIMED-OUT';
       autoSubmitExam();
     }
   }, 1000);
