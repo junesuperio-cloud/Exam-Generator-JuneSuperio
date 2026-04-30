@@ -660,6 +660,7 @@ function submitExamForm(status) {
         return api({ action: 'activateExam', password: App.password, examId: data.examId })
           .then(function (actData) {
             if (!actData.success) { alert('Exam saved but could not activate: ' + actData.error); return; }
+            if (actData.warning) showToast('⚠️ ' + actData.warning);
             showExamLinkBanner(actData.examLink);
             showSaveActivateModal(actData.examLink);
           });
@@ -758,6 +759,7 @@ function activateExam(examId) {
   api({ action: 'activateExam', password: App.password, examId })
     .then(function (data) {
       if (!data.success) { alert('Error: ' + data.error); return; }
+      if (data.warning) showToast('⚠️ ' + data.warning);
       showToast('Exam activated! Link: ' + data.examLink);
       loadExamsTab();
     });
